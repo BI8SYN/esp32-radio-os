@@ -1,0 +1,7 @@
+{
+  "version": "1.1.6",
+  "url": "http://8.138.130.141/radio-os/radio-os-1.1.6.bin",
+  "sha256": "52d71facc74af5b3f558078e0b7d57dfb3e67656a3600d6bc2a1e1b02202a972",
+  "notes": "重做中心聚焦频谱动效\n使用 RMS 响度与低中频共同驱动\n优化镜像衰减、响应速度与外侧层次",
+  "signature": "MEQCIEju13mNpUIqvgD9Vl32ShMvnaM1kIJvvfmlhyzs8VjdAiADfqS6OEQGFrTwzfBBcDWcFUMG36oPvyZ4oE8lxZONsw=="
+}

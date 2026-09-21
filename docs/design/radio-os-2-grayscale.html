@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Radio OS 1.1.6 · 320×240 视觉原型</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, "PingFang SC", sans-serif; color: #111; background: #ddd; }
+    body { display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 14px; }
+    .device { width: 320px; height: 240px; overflow: hidden; background: #fff; outline: 2px solid #111; position: relative; flex: 0 0 auto; }
+    .screen { display: none; width: 100%; height: 100%; background: #fff; }
+    .screen.active { display: flex; flex-direction: column; }
+    button, input { font: inherit; color: inherit; }
+    button { min-height: 40px; border: 1px solid #777; background: #eee; padding: 0 10px; cursor: pointer; }
+    button:active, button.selected { background: #222; color: #fff; }
+    button:disabled { color: #999; border-color: #bbb; }
+    .icon-btn { min-width: 44px; padding: 0 8px; }
+    .topbar { height: 42px; flex: 0 0 42px; border-bottom: 1px solid #aaa; display: grid; grid-template-columns: 76px 1fr 76px; align-items: center; padding: 0 4px; }
+    .topbar h1 { margin: 0; font-size: 18px; line-height: 24px; text-align: center; font-weight: 650; }
+    .topbar .right { justify-self: end; display: flex; gap: 3px; }
+    .topbar button { height: 38px; min-height: 38px; border: 0; background: #fff; padding: 0 8px; }
+    .topbar button:active { background: #222; color: #fff; }
+    .body { min-height: 0; flex: 1; overflow: auto; }
+    .home-tools { height: 40px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; padding: 0 6px; }
+    .home-tools button { min-height: 36px; height: 36px; border: 0; background: #fff; }
+    .home-tools button:last-child { justify-self: end; }
+    .home-clock { justify-self: center; color: #555; font-size: 13px; line-height: 20px; font-variant-numeric: tabular-nums; letter-spacing: .2px; white-space: nowrap; }
+    .home-tools .wifi-entry { font-size: 20px; filter: grayscale(1); }
+    .home-title { min-height: 66px; padding: 7px 16px 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .eyebrow { font-size: 12px; line-height: 17px; color: #555; margin-bottom: 2px; }
+    .station-name-viewport { width: 100%; min-height: 29px; overflow: hidden; }
+    .station-name { width: max-content; min-width: 100%; font-size: 23px; line-height: 29px; font-weight: 680; text-align: center; white-space: nowrap; }
+    .station-name.marquee { min-width: 0; animation: station-scroll var(--scroll-duration, 7s) ease-in-out 1.2s infinite alternate; }
+    @keyframes station-scroll { 0%, 14% { transform: translateX(0); } 86%, 100% { transform: translateX(var(--scroll-x, 0)); } }
+    .visual { width: calc(100% - 24px); height: 44px; min-height: 44px; margin: 0 12px; border: 0; background: transparent; display: flex; justify-content: center; align-items: center; padding: 0; }
+    .visual:active { background: #eee; color: #111; }
+    .bars-visual { width: 210px; height: 100%; display: flex; justify-content: center; align-items: center; gap: 6px; }
+    .bar { width: 6px; height: 34px; background: #555; transform: scaleY(.35); transform-origin: center; }
+    .home-state { height: 18px; font-size: 12px; line-height: 18px; text-align: center; color: #555; }
+    .controls { height: 46px; display: flex; justify-content: center; gap: 6px; padding: 1px 6px; }
+    .controls button { width: 54px; min-width: 54px; height: 44px; min-height: 44px; border: 0; outline: 0; background: #fff; padding: 0; font-size: 18px; }
+    .controls button:active { background: #ddd; color: #111; }
+    .controls .primary { width: 66px; min-width: 66px; background: #fff; color: #111; font-size: 22px; }
+    .controls .primary:active { background: #ddd; color: #111; }
+    .control-icon { width: 22px; height: 22px; display: block; margin: auto; color: currentColor; }
+    .control-icon line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .control-icon polygon { fill: currentColor; }
+    .favorite-icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .controls .is-favorite .favorite-icon { fill: currentColor; }
+    .play-morph { position: relative; width: 28px; height: 28px; display: block; margin: auto; }
+    .play-morph i { position: absolute; inset: 0; background: currentColor; transition: clip-path 180ms cubic-bezier(.4,0,.2,1); }
+    .play-morph i:first-child { clip-path: polygon(25% 14%, 82% 50%, 82% 50%, 25% 86%); }
+    .play-morph i:last-child { clip-path: polygon(82% 50%, 82% 50%, 82% 50%, 82% 50%); }
+    .controls .is-playing .play-morph i:first-child { clip-path: polygon(27% 15%, 45% 15%, 45% 85%, 27% 85%); }
+    .controls .is-playing .play-morph i:last-child { clip-path: polygon(56% 15%, 74% 15%, 74% 85%, 56% 85%); }
+    .volume { height: 26px; display: grid; grid-template-columns: 24px 1fr 24px; gap: 7px; align-items: center; padding: 0 14px; }
+    .volume-icon { width: 20px; height: 20px; display: block; color: #333; }
+    input[type="range"] { width: 100%; }
+    .message-actions { display: none; justify-content: center; align-items: center; gap: 8px; }
+    .message-actions.show { display: flex; height: 46px; padding: 3px 6px; }
+    .message-actions button { min-height: 40px; height: 40px; }
+    .search { height: 40px; padding: 4px 8px; }
+    .search input { width: 100%; height: 32px; border: 1px solid #777; background: #fff; padding: 0 9px; }
+    .tabs { height: 40px; display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #aaa; }
+    .tabs button { min-height: 39px; border: 0; border-right: 1px solid #bbb; background: #fff; }
+    .tabs button:last-child { border-right: 0; }
+    .tabs button.selected { background: #222; color: #fff; }
+    .station-list { overflow: auto; min-height: 0; flex: 1; }
+    .station-row { width: 100%; min-height: 48px; border: 0; border-bottom: 1px solid #ccc; background: #fff; display: grid; grid-template-columns: 18px 1fr 72px 36px; gap: 4px; align-items: center; padding: 4px 6px; text-align: left; }
+    .station-row:active { background: #eee; color: #111; }
+    .station-row .name { font-size: 15px; line-height: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .station-row .meta { font-size: 11px; color: #666; text-align: right; }
+    .station-row .fav { min-height: 36px; border: 0; background: transparent; padding: 0; font-size: 19px; }
+    .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; padding: 12px; }
+    .empty strong { font-size: 17px; }
+    .empty span { font-size: 13px; color: #666; }
+    .filter-body { flex: 1; min-height: 0; overflow: auto; padding: 8px; }
+    .filter-body h2 { font-size: 13px; margin: 0 0 6px; color: #555; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    .chips button { min-height: 34px; height: 34px; padding: 0 11px; }
+    .filter-footer { height: 48px; flex: 0 0 48px; padding: 4px 8px; border-top: 1px solid #aaa; }
+    .filter-footer button { width: 100%; background: #222; color: #fff; }
+    .settings-list { padding: 0 8px; }
+    .setting-row { width: 100%; min-height: 45px; border: 0; border-bottom: 1px solid #ccc; background: #fff; display: grid; grid-template-columns: 1fr auto; align-items: center; text-align: left; padding: 0 8px; }
+    .setting-row:active { background: #eee; color: #111; }
+    .setting-row small { color: #666; }
+    .setting-row input[type="range"] { width: 145px; }
+    .time-format-switch { height: 44px; display: grid; grid-template-columns: repeat(2, 60px); border-radius: 10px; overflow: hidden; background: #eee; }
+    .time-format-switch button { width: 60px; height: 44px; min-height: 44px; border: 0; padding: 0; background: transparent; font-size: 12px; }
+    .time-setting { min-height: 56px; }
+    .toggle { position: relative; display: inline-block; width: 46px; height: 28px; flex: 0 0 auto; }
+    .toggle input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 2; }
+    .toggle-track { position: absolute; inset: 0; border: 1px solid #777; border-radius: 14px; background: #eee; }
+    .toggle-thumb { position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; border-radius: 50%; background: #555; }
+    .toggle input:checked + .toggle-track { background: #222; border-color: #222; }
+    .toggle input:checked + .toggle-track .toggle-thumb { left: 21px; background: #fff; }
+    .toggle input:focus-visible + .toggle-track { outline: 2px solid #777; outline-offset: 2px; }
+    .wifi-list .setting-row { min-height: 46px; }
+    .wifi-list .setting-row small { min-width: 50px; text-align: right; }
+    .password { padding: 8px 8px 0; display: grid; grid-template-rows: 28px 28px 1fr; gap: 4px; min-height: 0; flex: 1; }
+    .password label { font-size: 13px; }
+    .password input { height: 28px; border: 1px solid #777; padding: 0 8px; }
+    .screen-keyboard { margin: 0 -8px; padding: 4px; min-height: 132px; align-self: end; display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; background: var(--bg); }
+    .screen-keyboard button { min-width: 0; min-height: 30px; height: 30px; padding: 0; border: 0; border-radius: 6px; font-size: 11px; }
+    .screen-keyboard .wide { grid-column: span 5; }
+    .about { padding: 12px 16px; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 12px; }
+    .about-identity { display: flex; align-items: center; justify-content: center; gap: 12px; text-align: left; }
+    .about-mark { width: 44px; height: 44px; flex: 0 0 44px; border-radius: 13px; display: grid; place-items: center; background: #eee; }
+    .about-mark svg { width: 28px; height: 28px; color: #555; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .about h2 { margin: 0; font-size: 24px; line-height: 28px; letter-spacing: -.4px; }
+    .about-subtitle { margin: 0; color: #666; font-size: 12px; line-height: 16px; }
+    .about-card { overflow: hidden; border: 1px solid #ccc; border-radius: 12px; background: #eee; }
+    .about-stats { min-height: 48px; display: grid; grid-template-columns: repeat(2, 1fr); }
+    .about-stat { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+    .about-stat + .about-stat { border-left: 1px solid #ccc; }
+    .about-stat span, .about-author span { color: #666; font-size: 12px; }
+    .about-stat strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+    .about-author { min-height: 42px; border-top: 1px solid #ccc; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+    .about-author strong { font-size: 17px; letter-spacing: .4px; }
+    .diag { padding: 8px; font-size: 13px; line-height: 22px; }
+    .diag dl { display: grid; grid-template-columns: 1fr auto; margin: 0; }
+    .diag dt, .diag dd { margin: 0; border-bottom: 1px solid #ccc; padding: 4px; }
+    .touch-pad { position: relative; flex: 1; min-height: 0; text-align: center; overflow: hidden; }
+    .touch-status { margin: 4px 8px 0; font-size: 14px; line-height: 20px; }
+    .touch-detail { margin: 0 8px; color: #666; font-size: 12px; line-height: 18px; white-space: pre-line; }
+    .touch-target { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border: 2px solid #555; border-radius: 50%; pointer-events: none; }
+    .touch-target::before, .touch-target::after { content: ""; position: absolute; left: 50%; top: 50%; background: #555; transform: translate(-50%, -50%); }
+    .touch-target::before { width: 20px; height: 2px; }
+    .touch-target::after { width: 2px; height: 20px; }
+    .touch-dot { display: none; position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; pointer-events: none; }
+    .touch-restart { display: none; position: absolute; left: 96px; bottom: 16px; width: 128px; height: 44px; border: 0; border-radius: 11px; }
+    .ota-body { padding: 10px 16px 8px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; gap: 8px; }
+    .ota-hero { width: 264px; min-height: 48px; display: flex; align-items: center; gap: 16px; text-align: left; }
+    .ota-icon-box { width: 40px; height: 40px; flex: 0 0 40px; display: grid; place-items: center; border-radius: 12px; background: #eee; }
+    .ota-icon { width: 22px; height: 22px; color: #555; }
+    .ota-heading strong { display: block; font-size: 18px; line-height: 23px; }
+    .ota-version-top { display: block; color: #666; font-size: 12px; line-height: 17px; }
+    .ota-body p { width: 288px; margin: 0; color: #666; font-size: 12px; line-height: 17px; }
+    .ota-notes { width: 288px; padding: 8px 10px; border-radius: 10px; background: #eee; text-align: left; font-size: 12px; line-height: 17px; }
+    .ota-notes strong { display: block; margin-bottom: 2px; }
+    .ota-body > button { width: 160px; min-height: 40px; margin-top: 4px; border: 0; border-radius: 11px; }
+    .drawer-layer { display: none; position: absolute; inset: 0; z-index: 20; }
+    .drawer-layer.open { display: block; }
+    .drawer { position: absolute; inset: 0 auto 0 0; width: 214px; height: 100%; background: #fff; border-right: 1px solid #555; display: flex; flex-direction: column; }
+    .drawer-head { height: 48px; flex: 0 0 48px; border-bottom: 1px solid #aaa; display: flex; align-items: center; justify-content: space-between; padding: 0 6px 0 12px; }
+    .drawer-head strong { display: flex; align-items: baseline; gap: 4px; font-size: 16px; }
+    .drawer-head strong small { color: #666; font-size: 9px; font-weight: 500; letter-spacing: .1px; }
+    .drawer-head button { border: 0; background: #fff; min-width: 40px; }
+    .drawer-content { min-height: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .drawer-item { width: 100%; min-height: 45px; border: 0; border-bottom: 1px solid #ccc; background: #fff; display: grid; grid-template-columns: 28px 1fr auto; align-items: center; text-align: left; padding: 0 12px; }
+    .drawer-item:active { background: #222; color: #fff; }
+    .drawer-item small { color: #666; }
+    .menu-icon { width: 20px; height: 20px; display: block; color: currentColor; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .drawer-note { min-height: 32px; margin-top: auto; display: flex; align-items: center; justify-content: center; color: #666; font-size: 12px; }
+    .drawer-scrim { position: absolute; inset: 0 0 0 214px; width: 106px; height: 100%; border: 0; padding: 0; background: #777; opacity: .55; }
+    .donation-layer { display: none; position: absolute; inset: 0; z-index: 30; align-items: center; justify-content: center; background: rgba(17,17,17,.34); }
+    .donation-layer.open { display: flex; }
+    .donation-card { position: relative; width: 216px; height: 232px; padding: 44px 20px 12px; border-radius: 12px; background: #fff; }
+    .donation-card strong { position: absolute; left: 16px; top: 13px; font-size: 14px; line-height: 20px; }
+    .donation-card .donation-close { position: absolute; right: 0; top: 0; width: 44px; height: 40px; min-height: 40px; border: 0; background: transparent; }
+    .donation-card img { display: block; width: 176px; height: 176px; image-rendering: pixelated; }
+    .proto-panel { width: min(720px, 100%); background: #fff; border: 1px solid #999; padding: 10px; }
+    .proto-panel h2 { font-size: 15px; margin: 0 0 8px; }
+    .proto-panel p { margin: 8px 0 0; color: #555; font-size: 12px; }
+    .proto-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .proto-actions button { min-height: 34px; height: 34px; font-size: 12px; }
+
+    /* 正式视觉层：暖白 + 近黑 + 单一紫蓝强调色 */
+    :root {
+      --canvas: #e9e9ef;
+      --bg: #f8f8f5;
+      --surface: #eeeeF2;
+      --surface-strong: #e4e4ea;
+      --ink: #17171c;
+      --muted: #696970;
+      --placeholder: #96969d;
+      --line: #d9d9df;
+      --accent: #635bff;
+      --accent-soft: rgba(99, 91, 255, .13);
+      --white: #ffffff;
+    }
+    html, body { color: var(--ink); background: var(--canvas); }
+    .device { background: var(--bg); outline: 1px solid #b8b8c0; box-shadow: 0 8px 24px rgba(23, 23, 28, .10); }
+    .screen { background: var(--bg); }
+    button { border-color: var(--line); background: var(--surface); }
+    button:active, button.selected { background: var(--accent); color: var(--white); }
+    .topbar { border-color: var(--line); }
+    .topbar h1 { font-size: 17px; letter-spacing: -.2px; }
+    .topbar button, .home-tools button { color: var(--muted); background: transparent; }
+    .topbar button:active, .home-tools button:active { color: var(--accent); background: var(--accent-soft); }
+    .home-tools .wifi-entry { color: var(--accent); }
+    .home-clock { color: var(--muted); }
+    .eyebrow, .home-state { color: var(--muted); }
+    .update-banner { display: none; height: 18px; min-height: 18px; margin: 0 8px; padding: 0; border: 0; border-radius: 8px; color: var(--accent); background: var(--accent-soft); font-size: 12px; line-height: 18px; }
+    .update-banner.show { display: block; }
+    .station-name { color: var(--ink); letter-spacing: -.5px; }
+    .visual { border: 0; border-radius: 0; color: var(--accent); background: transparent; }
+    .visual:active { color: var(--accent); background: transparent; opacity: .65; }
+    .bar { background: var(--accent); border-radius: 4px; transition: transform 90ms linear, opacity 90ms linear; }
+    .controls button, .controls .primary { color: var(--ink); background: transparent; }
+    .controls button:active, .controls .primary:active { color: var(--accent); background: var(--accent-soft); border-radius: 12px; }
+    .controls .primary { color: var(--accent); }
+    .controls .is-favorite { color: var(--accent); }
+    .volume-icon { color: var(--muted); }
+    input[type="range"] { appearance: none; height: 4px; border-radius: 2px; background: var(--line); }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border: 4px solid var(--bg); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+    .search input { border: 0; border-radius: 10px; color: var(--ink); background: var(--surface); outline: 0; }
+    .search input::placeholder { color: var(--placeholder); }
+    .search input:focus { box-shadow: 0 0 0 2px var(--accent); }
+    .tabs { height: 36px; margin: 0 8px 4px; border: 0; border-radius: 11px; background: var(--surface); }
+    .tabs button { min-height: 36px; border: 0; border-radius: 9px; color: var(--muted); background: transparent; }
+    .tabs button.selected { color: var(--white); background: var(--accent); }
+    .station-row { border-color: var(--line); color: var(--ink); background: transparent; }
+    .station-row:active { color: var(--ink); background: var(--accent-soft); }
+    .station-row > span:first-child { color: var(--accent); }
+    .station-row .meta, .setting-row small, .drawer-item small { color: var(--muted); }
+    .station-row .fav { color: var(--accent); }
+    .filter-body h2 { color: var(--muted); }
+    .chips button { border: 0; border-radius: 10px; color: var(--ink); background: var(--surface); }
+    .chips button.selected { color: var(--white); background: var(--accent); }
+    .filter-footer { border-color: var(--line); }
+    .filter-footer button, .password .submit { border: 0; border-radius: 11px; color: var(--white); background: var(--accent); }
+    .setting-row { border-color: var(--line); color: var(--ink); background: transparent; }
+    .setting-row:active { color: var(--ink); background: var(--accent-soft); }
+    .password input { border: 0; border-radius: 10px; color: var(--ink); background: var(--surface); outline: 0; }
+    .password input:focus { box-shadow: 0 0 0 2px var(--accent); }
+    .about-mark { background: var(--accent-soft); }
+    .about-mark svg { color: var(--accent); }
+    .about-subtitle, .about-stat span, .about-author span { color: var(--muted); }
+    .about-card { border-color: var(--line); background: var(--surface); }
+    .about-stat + .about-stat, .about-author { border-color: var(--line); }
+    .about-author strong { color: var(--accent); }
+    .toggle-track { border-color: #b8b8c0; background: var(--surface-strong); }
+    .toggle-thumb { background: var(--muted); }
+    .toggle input:checked + .toggle-track { border-color: var(--accent); background: var(--accent); }
+    .toggle input:checked + .toggle-track .toggle-thumb { background: var(--white); }
+    .toggle input:focus-visible + .toggle-track { outline-color: var(--accent); }
+    .time-format-switch { background: var(--surface); }
+    .time-format-switch button { color: var(--muted); background: transparent; }
+    .time-format-switch button.selected { color: var(--white); background: var(--accent); }
+    .drawer { background: var(--bg); border-color: var(--line); box-shadow: none; }
+    .drawer-head { border-color: var(--line); }
+    .drawer-head strong small { color: var(--muted); }
+    .drawer-head button, .drawer-item { color: var(--ink); background: transparent; }
+    .drawer-item { border-color: var(--line); }
+    .drawer-item:active { color: var(--accent); background: var(--accent-soft); }
+    .drawer-note { color: var(--muted); }
+    .drawer-scrim { background: var(--ink); opacity: .28; }
+    .diag dt, .diag dd { border-color: var(--line); }
+    .touch-target { border-color: var(--accent); }
+    .touch-target::before, .touch-target::after, .touch-dot { background: var(--accent); }
+    .touch-detail { color: var(--muted); }
+    .touch-restart { color: var(--white); background: var(--accent); }
+    .ota-icon-box { background: var(--accent-soft); }
+    .ota-icon { color: var(--accent); }
+    .ota-version-top { color: var(--muted); }
+    .ota-body p { color: var(--muted); }
+    .ota-notes { color: var(--muted); background: var(--surface); }
+    .ota-notes strong { color: var(--ink); }
+    .ota-body > button { color: var(--white); background: var(--accent); }
+    .proto-panel { border: 0; background: var(--bg); box-shadow: 0 4px 12px rgba(23, 23, 28, .08); }
+    .proto-panel p { color: var(--muted); }
+    .proto-actions button { border: 0; border-radius: 8px; color: var(--ink); background: var(--surface); }
+  </style>
+</head>
+<body>
+  <main class="device" aria-label="320×240 网络收音机原型">
+    <section id="home" class="screen active">
+      <div class="home-tools">
+        <button id="open-drawer" aria-label="打开菜单">☰</button>
+        <time class="home-clock" id="home-clock" aria-label="当前时间">09:41</time>
+        <button class="wifi-entry" data-go="wifi" aria-label="Wi-Fi">🛜</button>
+      </div>
+      <div class="home-title">
+        <div class="eyebrow" id="home-meta">湖南 · 交通</div>
+        <div class="station-name-viewport"><div class="station-name" id="home-name">1028郴州交通旅游广播</div></div>
+      </div>
+      <div class="visual" id="home-visual" aria-label="音频视觉">
+        <span class="bars-visual" aria-hidden="true">
+          <i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i>
+          <i class="bar center-bar"></i>
+          <i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i><i class="bar"></i>
+        </span>
+      </div>
+      <div class="home-state" id="home-state">正在播放</div>
+      <button class="update-banner" id="update-banner" data-go="ota">发现新版本 1.1.7　›</button>
+      <div class="message-actions" id="home-actions"><button id="retry">重试</button><button id="skip">下一台</button></div>
+      <div class="controls" id="home-controls">
+        <button data-go="library" aria-label="电台库"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="6" x2="17" y2="6"/><line x1="4" y1="12" x2="21" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg></button>
+        <button id="prev" aria-label="上一台"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="16,3 5,12 16,21"/></svg></button>
+        <button class="primary is-playing" id="play" aria-label="暂停"><span class="play-morph" aria-hidden="true"><i></i><i></i></span></button>
+        <button id="next" aria-label="下一台"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="8,3 19,12 8,21"/></svg></button>
+        <button id="home-fav" aria-label="收藏"><svg class="favorite-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5 4.4 13.4C1.2 10.4 3.2 5.2 7.5 5.2c2 0 3.5 1.1 4.5 2.5 1-1.4 2.5-2.5 4.5-2.5 4.3 0 6.3 5.2 3.1 8.2Z"/></svg></button>
+      </div>
+      <label class="volume" aria-label="音量">
+        <svg class="volume-icon" viewBox="0 0 24 24" aria-label="低音量" role="img"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/></svg>
+        <input id="volume" type="range" min="0" max="100" value="49" aria-label="音量">
+        <svg class="volume-icon" viewBox="0 0 24 24" aria-label="高音量" role="img"><path d="M2 9h4l5-4v14l-5-4H2zM14 8c1.4 1.1 2 2.4 2 4s-.6 2.9-2 4M17 5c2.3 2 3.5 4.2 3.5 7S19.3 17 17 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </label>
+    </section>
+
+    <section id="library" class="screen">
+      <header class="topbar"><button data-go="home">返回</button><h1>电台库</h1><div class="right"><button data-go="filter">筛选</button></div></header>
+      <div class="search"><input id="search" type="search" placeholder="搜索电台名称" aria-label="搜索电台名称"></div>
+      <nav class="tabs"><button data-tab="favorites">收藏</button><button class="selected" data-tab="featured">推荐</button><button data-tab="all">全部</button></nav>
+      <div id="station-list" class="station-list"></div>
+    </section>
+
+    <section id="filter" class="screen">
+      <header class="topbar"><button data-go="library">关闭</button><h1>筛选</h1><div class="right"><button id="reset-filter">重置</button></div></header>
+      <div class="filter-body">
+        <h2>地区</h2>
+        <div class="chips" id="region-chips">
+          <button class="selected" data-region="全部">全部</button><button data-region="北京">北京</button><button data-region="上海">上海</button>
+          <button data-region="广东">广东</button><button id="more-region" data-go="regions">更多地区</button>
+        </div>
+        <h2>内容</h2>
+        <div class="chips" id="category-chips">
+          <button class="selected" data-category="全部">全部</button><button data-category="综合">综合</button><button data-category="资讯">资讯</button>
+          <button data-category="音乐">音乐</button><button data-category="交通">交通</button><button data-category="生活">生活</button>
+          <button data-category="财经">财经</button><button data-category="文艺">文艺</button><button data-category="体育">体育</button><button data-category="方言">方言</button>
+        </div>
+      </div>
+      <footer class="filter-footer"><button id="apply-filter">应用</button></footer>
+    </section>
+
+    <section id="regions" class="screen">
+      <header class="topbar"><button data-go="filter">返回</button><h1>选择地区</h1><span></span></header>
+      <div class="body settings-list" id="region-list"></div>
+    </section>
+
+    <section id="settings" class="screen">
+      <header class="topbar"><button data-go="home">返回</button><h1>设置</h1><span></span></header>
+      <div class="body settings-list">
+        <button class="setting-row" data-go="wifi"><span>Wi-Fi</span><small>Lee_Home_2.4G　›</small></button>
+        <label class="setting-row"><span>联网后自动续播</span><span class="toggle"><input id="autoplay" type="checkbox" checked aria-label="联网后自动续播"><span class="toggle-track"><span class="toggle-thumb"></span></span></span></label>
+        <div class="setting-row time-setting"><span>时间格式</span><span class="time-format-switch" role="group" aria-label="时间格式"><button class="selected" data-time-format="24" aria-pressed="true">24 小时</button><button data-time-format="12" aria-pressed="false">12 小时</button></span></div>
+        <label class="setting-row"><span>屏幕亮度</span><input type="range" min="10" max="100" value="85"></label>
+        <button class="setting-row" data-go="ota"><span>系统更新</span><small>1.1.6　›</small></button>
+        <button class="setting-row" data-go="diagnostics"><span>诊断</span><small>›</small></button>
+        <button class="setting-row" data-go="about"><span>关于</span><small>›</small></button>
+      </div>
+    </section>
+
+    <section id="wifi" class="screen">
+      <header class="topbar"><button data-go="settings">返回</button><h1>选择网络</h1><div class="right"><button id="rescan">刷新</button></div></header>
+      <div class="body wifi-list" id="wifi-list"></div>
+    </section>
+
+    <section id="password" class="screen">
+      <header class="topbar"><button data-go="wifi">返回</button><h1>连接 Wi-Fi</h1><span></span></header>
+      <form class="password" id="wifi-form">
+        <input id="ssid" value="Lee_Home_2.4G" aria-label="网络名称" placeholder="Wi-Fi 名称">
+        <input id="pass" type="password" aria-label="密码" placeholder="输入 Wi-Fi 密码">
+        <div class="screen-keyboard" aria-label="屏幕键盘">
+          <button type="button">Q</button><button type="button">W</button><button type="button">E</button><button type="button">R</button><button type="button">T</button><button type="button">Y</button><button type="button">U</button><button type="button">I</button><button type="button">O</button><button type="button">P</button>
+          <button type="button">A</button><button type="button">S</button><button type="button">D</button><button type="button">F</button><button type="button">G</button><button type="button">H</button><button type="button">J</button><button type="button">K</button><button type="button">L</button><button type="button">⌫</button>
+          <button type="button">Z</button><button type="button">X</button><button type="button">C</button><button type="button">V</button><button type="button">B</button><button type="button">N</button><button type="button">M</button><button type="button">123</button><button type="button">空格</button><button type="button">·</button>
+          <button class="wide" type="button" data-go="wifi">取消</button><button class="wide submit" type="submit">连接</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="about" class="screen">
+      <header class="topbar"><button data-go="settings">返回</button><h1>关于</h1><span></span></header>
+      <div class="body about">
+        <div class="about-identity">
+          <div class="about-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12h3l2-4 3 8 3-10 3 8 2-2h2"/></svg></div>
+          <div><h2>Radio OS</h2><p class="about-subtitle">专注、纯粹的网络收音机</p></div>
+        </div>
+        <div class="about-card">
+          <div class="about-stats">
+            <div class="about-stat"><span>当前版本</span><strong>1.1.6</strong></div>
+            <div class="about-stat"><span>本机电台</span><strong>542</strong></div>
+          </div>
+          <div class="about-author"><span>设计与开发</span><strong>BI8SYN</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="diagnostics" class="screen">
+      <header class="topbar"><button data-go="settings">返回</button><h1>诊断</h1><span></span></header>
+      <div class="body diag">
+        <dl><dt>网络</dt><dd>已连接</dd><dt>音频</dt><dd>正常</dd><dt>电台目录</dt><dd>542</dd><dt>内部内存</dt><dd>56 KB</dd><dt>扩展内存</dt><dd>5.49 MB</dd></dl>
+        <button class="setting-row" data-go="touch-test"><span>触摸测试</span><small>五点检测　›</small></button>
+        <button style="width:100%;margin-top:8px">运行自检</button>
+      </div>
+    </section>
+
+    <section id="touch-test" class="screen">
+      <header class="topbar"><button data-go="diagnostics">返回</button><h1>触摸测试</h1><span></span></header>
+      <div class="touch-pad" id="touch-pad">
+        <div class="touch-status" id="touch-status">第 1 / 5 点</div>
+        <div class="touch-detail" id="touch-detail">请准确触摸紫色标记中心</div>
+        <div class="touch-target" id="touch-target" style="left:28px;top:50px"></div>
+        <div class="touch-dot" id="touch-dot"></div>
+        <button class="touch-restart" id="touch-restart">重新测试</button>
+      </div>
+    </section>
+
+    <section id="ota" class="screen">
+      <header class="topbar"><button data-go="settings">返回</button><h1>系统更新</h1><span></span></header>
+      <div class="body ota-body" id="ota-body"></div>
+    </section>
+
+    <div id="drawer-layer" class="drawer-layer" aria-hidden="true">
+      <nav class="drawer" aria-label="主菜单">
+        <div class="drawer-head"><strong>Radio OS <small>by BI8SYN</small></strong><button id="close-drawer" aria-label="关闭菜单">×</button></div>
+        <div class="drawer-content">
+          <button class="drawer-item" id="drawer-sleep"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span>睡眠定时</span><small>关闭　›</small></button>
+          <button class="drawer-item" data-go="settings"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h3M11 12h9M4 18h8M16 18h4"/><circle cx="16" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="14" cy="18" r="2"/></svg><span>设置</span><small>›</small></button>
+          <button class="drawer-item" id="drawer-donation"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h12v7a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M4 21h15"/></svg><span>请我喝杯咖啡</span><small>›</small></button>
+          <div class="drawer-note">Radio OS 1.1.6</div>
+        </div>
+      </nav>
+      <button id="drawer-scrim" class="drawer-scrim" aria-label="关闭菜单"></button>
+    </div>
+
+    <div id="donation-layer" class="donation-layer" aria-hidden="true">
+      <div class="donation-card">
+        <strong>请我喝杯咖啡</strong>
+        <button class="donation-close" id="donation-close" aria-label="关闭">×</button>
+        <img src="../assets/wechat-donation-qr-preview.png" alt="微信收款二维码">
+      </div>
+    </div>
+  </main>
+
+  <aside class="proto-panel">
+    <h2>原型状态预览</h2>
+    <div class="proto-actions">
+      <button data-demo="normal">正常播放</button><button data-demo="loading">正在连接</button><button data-demo="error">播放失败</button>
+      <button data-demo="offline">离线</button><button data-demo="favorite-empty">收藏为空</button><button data-demo="filter-empty">筛选为空</button>
+      <button data-demo="wifi-empty">Wi-Fi 为空</button><button data-demo="wifi-error">Wi-Fi 错误</button><button data-demo="first-boot">首次启动</button>
+      <button data-go="ota">在线更新页</button><button data-demo="update">发现新版本</button>
+    </div>
+    <p>此面板只用于设计验收，不属于设备界面。原型使用模拟数据，固件版能量条接入真实 PCM 频谱，并以整体音量稳定中央视觉锚点。</p>
+  </aside>
+
+  <script>
+    const stations = [
+      { name: "1028郴州交通旅游广播", region: "湖南", category: "交通", featured: true },
+      { name: "AsiaFM 亚洲经典台", region: "全国", category: "音乐", featured: true },
+      { name: "动听913（宣化区融媒体中心综合广播）", region: "河北", category: "综合", featured: true },
+      { name: "新疆生产建设兵团综合广播", region: "新疆", category: "综合", featured: true },
+      { name: "呼伦贝尔交通文艺广播", region: "内蒙古", category: "文艺", featured: true },
+      { name: "上海人民广播电台新闻广播", region: "上海", category: "资讯", featured: false },
+      { name: "广东广播电视台珠江经济台", region: "广东", category: "财经", featured: false },
+      { name: "北京音乐广播", region: "北京", category: "音乐", featured: false }
+    ];
+    const regions = ["全部", "全国", "北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江", "上海", "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南", "广东", "广西", "海南", "重庆", "四川", "贵州", "云南", "陕西", "甘肃", "青海", "宁夏", "新疆", "香港"];
+    const state = { screen: "home", station: stations[0], playing: true, favorite: false, tab: "featured", region: "全部", category: "全部", demo: "normal", timeFormat: "24", ota: "idle" };
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+
+    function updateMarquee(element, viewport) {
+      element.classList.remove("marquee");
+      element.style.removeProperty("--scroll-x");
+      element.style.removeProperty("--scroll-duration");
+      window.requestAnimationFrame(() => {
+        const overflow = element.scrollWidth - viewport.clientWidth;
+        if (overflow > 2) {
+          element.style.setProperty("--scroll-x", `${-overflow}px`);
+          element.style.setProperty("--scroll-duration", `${Math.max(6, 4 + overflow / 18)}s`);
+          element.classList.add("marquee");
+        }
+      });
+    }
+
+    const visualLevels = Array(9).fill(.2);
+    function spectrumPreview(time) {
+      const base = [.84, .48, .69, .36, .57, .29, .43, .21, .15];
+      const active = state.playing && state.demo !== "offline" && state.demo !== "error";
+      const spectrum = base.map((level, index) => {
+        const pulse = Math.sin(time * (.0028 + index * .00016) + index * .82) * .17;
+        const detail = Math.sin(time * (.0052 + index * .00021) + index * 1.47) * .09;
+        return active ? Math.max(.04, Math.min(1, level + pulse + detail)) : 0;
+      });
+      const envelope = [1, .91, .82, .73, .64, .55, .46, .37, .28];
+      const lowMid = (spectrum[0] * 3 + spectrum[1] * 2 + spectrum[2] * 2 + spectrum[3]) / 8;
+      const loudness = spectrum.reduce((sum, value) => sum + value, 0) / spectrum.length;
+      const targets = Array(9).fill(0);
+      targets[0] = active ? .28 + (loudness * .6 + lowMid * .4) * .72 : 0;
+      for (let distance = 1; distance < targets.length; distance++) {
+        const spectral = distance === 8 ? (spectrum[7] + spectrum[8]) / 2 : spectrum[distance - 1];
+        targets[distance] = (targets[0] * .82 + spectral * .18) * envelope[distance];
+        targets[distance] = Math.min(targets[distance], Math.max(0, targets[distance - 1] - .025));
+      }
+      return targets.map((target, index) => {
+        const smoothing = target > visualLevels[index] ? .52 : .24;
+        visualLevels[index] += (target - visualLevels[index]) * smoothing;
+        return visualLevels[index];
+      });
+    }
+
+    function renderAudioVisual(time) {
+      const levels = spectrumPreview(time);
+      const mirrored = [...levels.slice(1)].reverse().concat([levels[0]], levels.slice(1));
+      $$(".bars-visual").forEach(group => {
+        $$(".bar", group).forEach((bar, index) => {
+          const value = mirrored[index];
+          bar.style.transform = `scaleY(${Math.max(.08, value).toFixed(3)})`;
+          const distance = Math.abs(index - 8);
+          bar.style.opacity = Math.max(.24, .94 - distance * .065 + value * .06).toFixed(3);
+        });
+      });
+    }
+
+    function updateClock() {
+      const now = new Date(), minutes = String(now.getMinutes()).padStart(2, "0");
+      let label;
+      if (state.timeFormat === "12") {
+        const period = now.getHours() < 12 ? "上午" : "下午";
+        label = `${period} ${now.getHours() % 12 || 12}:${minutes}`;
+      } else {
+        label = `${String(now.getHours()).padStart(2, "0")}:${minutes}`;
+      }
+      $("#home-clock").textContent = label;
+      $("#home-clock").dateTime = now.toISOString();
+    }
+
+    function setTimeFormat(format) {
+      state.timeFormat = format;
+      $$('[data-time-format]').forEach(button => {
+        const selected = button.dataset.timeFormat === format;
+        button.classList.toggle("selected", selected);
+        button.setAttribute("aria-pressed", selected ? "true" : "false");
+      });
+      updateClock();
+    }
+
+    let previousVisualFrame = 0;
+    function animateAudioVisual(time) {
+      if (time - previousVisualFrame > 34) {
+        renderAudioVisual(time);
+        previousVisualFrame = time;
+      }
+      window.requestAnimationFrame(animateAudioVisual);
+    }
+
+    function go(id) {
+      $$(".screen").forEach(el => el.classList.toggle("active", el.id === id));
+      state.screen = id;
+      if (id === "library") renderStations();
+      if (id === "wifi" && state.demo !== "wifi-empty" && state.demo !== "wifi-error") scanWifi();
+      if (id === "ota") renderOta(state.demo === "offline" ? "offline" : state.ota === "offline" ? "idle" : state.ota);
+      if (id === "touch-test") resetTouchTest();
+      if (id === "home") window.requestAnimationFrame(() => updateMarquee($("#home-name"), $(".station-name-viewport")));
+    }
+
+    function openDrawer() {
+      $("#drawer-layer").classList.add("open");
+      $("#drawer-layer").setAttribute("aria-hidden", "false");
+    }
+
+    function closeDrawer() {
+      $("#drawer-layer").classList.remove("open");
+      $("#drawer-layer").setAttribute("aria-hidden", "true");
+    }
+
+    function openDonation() {
+      closeDrawer();
+      $("#donation-layer").classList.add("open");
+      $("#donation-layer").setAttribute("aria-hidden", "false");
+    }
+
+    function closeDonation() {
+      $("#donation-layer").classList.remove("open");
+      $("#donation-layer").setAttribute("aria-hidden", "true");
+    }
+
+    function setStation(station) {
+      state.station = station;
+      $("#home-name").textContent = station.name;
+      $("#home-meta").textContent = `${station.region} · ${station.category}`;
+      state.demo = "loading";
+      applyHomeState();
+      go("home");
+      window.setTimeout(() => { state.demo = "normal"; state.playing = true; applyHomeState(); }, 650);
+    }
+
+    function applyHomeState() {
+      const label = $("#home-state"), banner = $("#update-banner"), actions = $("#home-actions"), controls = $("#home-controls"), visual = $("#home-visual");
+      actions.classList.remove("show"); controls.style.display = "flex"; visual.style.display = "flex"; visual.style.visibility = "visible";
+      const hasUpdate = state.ota === "available" && state.demo !== "offline";
+      banner.classList.toggle("show", hasUpdate); label.style.display = hasUpdate ? "none" : "block";
+      if (state.demo === "loading") label.textContent = "正在连接…";
+      else if (state.demo === "error") { label.textContent = "暂时无法播放"; actions.classList.add("show"); controls.style.display = "none"; }
+      else if (state.demo === "offline") { label.textContent = "网络未连接 · 前往设置连接网络"; visual.style.visibility = "hidden"; }
+      else label.textContent = state.playing ? "正在播放" : "已暂停";
+      $("#play").classList.toggle("is-playing", state.playing);
+      $("#play").setAttribute("aria-label", state.playing ? "暂停" : "播放");
+      $("#home-fav").classList.toggle("is-favorite", state.favorite);
+    }
+
+    function renderStations(forcedEmpty = false) {
+      const host = $("#station-list"), query = $("#search").value.trim().toLowerCase();
+      let list = stations.filter(s => state.tab !== "favorites" || state.favorite && s === state.station)
+        .filter(s => state.tab !== "featured" || s.featured)
+        .filter(s => state.region === "全部" || s.region === state.region)
+        .filter(s => state.category === "全部" || s.category === state.category)
+        .filter(s => !query || s.name.toLowerCase().includes(query));
+      if (forcedEmpty) list = [];
+      if (!list.length) {
+        const isFav = state.tab === "favorites" && !query && state.region === "全部" && state.category === "全部";
+        host.innerHTML = `<div class="empty"><strong>${isFav ? "还没有收藏" : "没有匹配的电台"}</strong><span>${isFav ? "播放时点击收藏，常听的台会出现在这里" : "可以修改搜索词或清除筛选"}</span><button id="empty-action">${isFav ? "浏览推荐" : "清除筛选"}</button></div>`;
+        $("#empty-action").onclick = () => { state.tab = "featured"; state.region = state.category = "全部"; $("#search").value = ""; syncTabs(); renderStations(); };
+        return;
+      }
+      host.innerHTML = list.map((s, index) => `<button class="station-row" data-station="${stations.indexOf(s)}"><span>${s === state.station && state.playing ? "▶" : ""}</span><span class="name">${s.name}</span><span class="meta">${s.region} · ${s.category}</span><span class="fav">${s === state.station && state.favorite ? "♥" : "♡"}</span></button>`).join("");
+      $$(".station-row", host).forEach(row => row.onclick = () => setStation(stations[Number(row.dataset.station)]));
+    }
+
+    function syncTabs() {
+      $$('[data-tab]').forEach(b => b.classList.toggle("selected", b.dataset.tab === state.tab));
+    }
+
+    function selectChip(kind, value) {
+      state[kind] = value;
+      $$(`[data-${kind}]`).forEach(b => b.classList.toggle("selected", b.dataset[kind] === value));
+      if (kind === "region") {
+        const common = ["全部", "北京", "上海", "广东"];
+        $("#more-region").textContent = common.includes(value) ? "更多地区" : value;
+        $("#more-region").classList.toggle("selected", !common.includes(value));
+      }
+    }
+
+    function buildRegions() {
+      $("#region-list").innerHTML = regions.map(r => `<button class="setting-row" data-full-region="${r}"><span>${r}</span><small>${r === state.region ? "已选择" : ""}</small></button>`).join("");
+      $$('[data-full-region]').forEach(b => b.onclick = () => { selectChip("region", b.dataset.fullRegion); go("filter"); });
+    }
+
+    function renderWifi(mode = "normal") {
+      const host = $("#wifi-list");
+      if (mode === "loading") host.innerHTML = '<div class="empty"><strong>正在扫描附近网络…</strong><span>只显示 2.4GHz Wi-Fi</span></div>';
+      else if (mode === "empty") host.innerHTML = '<div class="empty"><strong>没有找到可用网络</strong><span>请靠近路由器后重试</span><button id="wifi-retry">重新扫描</button><button data-go="password">手动输入隐藏网络</button></div>';
+      else if (mode === "error") host.innerHTML = '<div class="empty"><strong>扫描暂时不可用</strong><span>请稍后重试</span><button id="wifi-retry">重试</button></div>';
+      else host.innerHTML = '<button class="setting-row wifi-choice"><span>Lee_Home_2.4G</span><small>已连接</small></button><button class="setting-row wifi-choice"><span>Home_2.4G</span><small>信号强</small></button><button class="setting-row wifi-choice"><span>Guest</span><small>信号中</small></button><button class="setting-row" data-go="password"><span>手动输入隐藏网络</span><small>›</small></button>';
+      bindNavigation();
+      $$(".wifi-choice").forEach(b => b.onclick = () => { $("#ssid").value = b.querySelector("span").textContent; go("password"); });
+      if ($("#wifi-retry")) $("#wifi-retry").onclick = scanWifi;
+    }
+
+    function scanWifi() {
+      renderWifi("loading");
+      window.setTimeout(() => renderWifi("normal"), 650);
+    }
+
+    function renderOta(mode = "idle") {
+      const host = $("#ota-body");
+      const checking = mode === "checking", current = mode === "current", available = mode === "available";
+      const title = checking ? "正在检查更新" : current ? "已是最新版本" : available ? "发现新版本" : "在线更新";
+      const version = available ? "当前 1.1.6　·　最新 1.1.7" : "当前版本　1.1.6";
+      const copy = checking ? "正在安全连接更新服务…" : current ? "当前已是最新版本" : available ? "Radio OS 1.1.7 已准备好" : "通过 Wi-Fi 安全下载并校验新固件";
+      const notes = available ? '<div class="ota-notes"><strong>更新内容</strong>修复收藏图标导致的界面卡死<br>新增界面响应自检<br>修正固件版本构建缓存</div>' : "";
+      host.innerHTML = `<div class="ota-hero"><span class="ota-icon-box"><svg class="ota-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="ota-heading"><strong>${title}</strong><small class="ota-version-top">${version}</small></span></div><p>${copy}</p>${notes}${checking ? "" : `<button id="ota-check">${available ? "立即更新" : "检查更新"}</button>`}`;
+      if ($("#ota-check")) $("#ota-check").onclick = () => {
+        if (available) { state.ota = "checking"; renderOta("checking"); window.setTimeout(() => { state.ota = "current"; renderOta("current"); applyHomeState(); }, 900); }
+        else { state.ota = "checking"; renderOta("checking"); window.setTimeout(() => { state.ota = "available"; renderOta("available"); applyHomeState(); }, 900); }
+      };
+    }
+
+    const touchTargets = [[28, 50], [292, 50], [160, 103], [28, 173], [292, 173]];
+    let touchStep = 0, touchDeltas = [];
+    function resetTouchTest() {
+      touchStep = 0; touchDeltas = [];
+      $("#touch-status").textContent = "第 1 / 5 点";
+      $("#touch-detail").textContent = "请准确触摸紫色标记中心";
+      Object.assign($("#touch-target").style, { display: "block", left: "28px", top: "50px" });
+      $("#touch-dot").style.display = "none";
+      $("#touch-restart").style.display = "none";
+    }
+    $("#touch-pad").onclick = event => {
+      if (event.target === $("#touch-restart") || touchStep >= 5) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = Math.round(event.clientX - rect.left), y = Math.round(event.clientY - rect.top);
+      const [targetX, targetY] = touchTargets[touchStep];
+      const dx = x - targetX, dy = y - targetY;
+      touchDeltas.push([dx, dy]);
+      Object.assign($("#touch-dot").style, { display: "block", left: `${x}px`, top: `${y}px` });
+      touchStep += 1;
+      if (touchStep < 5) {
+        const [nextX, nextY] = touchTargets[touchStep];
+        $("#touch-status").textContent = `第 ${touchStep + 1} / 5 点`;
+        $("#touch-detail").textContent = `上点偏差 ${dx >= 0 ? "+" : ""}${dx}, ${dy >= 0 ? "+" : ""}${dy} · 继续触摸标记`;
+        Object.assign($("#touch-target").style, { left: `${nextX}px`, top: `${nextY}px` });
+        return;
+      }
+      const xs = touchDeltas.map(point => point[0]), ys = touchDeltas.map(point => point[1]);
+      const meanX = Math.round(xs.reduce((a, b) => a + b, 0) / 5), meanY = Math.round(ys.reduce((a, b) => a + b, 0) / 5);
+      const spreadX = Math.max(...xs) - Math.min(...xs), spreadY = Math.max(...ys) - Math.min(...ys);
+      $("#touch-status").textContent = "测试完成";
+      $("#touch-detail").textContent = `平均偏差 ${meanX >= 0 ? "+" : ""}${meanX}, ${meanY >= 0 ? "+" : ""}${meanY} · 离散 ${spreadX}, ${spreadY}\n${spreadX <= 6 && spreadY <= 6 ? "稳定偏移，建议驱动补偿" : "各处偏差不同，建议多点补偿"}`;
+      $("#touch-target").style.display = "none";
+      $("#touch-restart").style.display = "block";
+    };
+    $("#touch-restart").onclick = event => { event.stopPropagation(); resetTouchTest(); };
+
+    function bindNavigation() {
+      $$('[data-go]').forEach(button => button.onclick = () => { closeDrawer(); if (button.dataset.go === "regions") buildRegions(); go(button.dataset.go); });
+    }
+
+    bindNavigation();
+    buildRegions();
+    renderStations();
+    applyHomeState();
+    setTimeFormat("24");
+    window.setInterval(updateClock, 1000);
+    window.requestAnimationFrame(animateAudioVisual);
+    window.requestAnimationFrame(() => updateMarquee($("#home-name"), $(".station-name-viewport")));
+    window.addEventListener("resize", () => {
+      if (state.screen === "home") updateMarquee($("#home-name"), $(".station-name-viewport"));
+    });
+    $("#open-drawer").onclick = openDrawer;
+    $("#close-drawer").onclick = closeDrawer;
+    $("#drawer-scrim").onclick = closeDrawer;
+    $("#drawer-donation").onclick = openDonation;
+    $("#donation-close").onclick = closeDonation;
+    $("#donation-layer").onclick = event => { if (event.target === event.currentTarget) closeDonation(); };
+    $("#play").onclick = () => { state.playing = !state.playing; applyHomeState(); };
+    $("#home-fav").onclick = () => { state.favorite = !state.favorite; applyHomeState(); };
+    $("#retry").onclick = () => { state.demo = "loading"; applyHomeState(); window.setTimeout(() => { state.demo = "normal"; applyHomeState(); }, 650); };
+    $("#skip").onclick = () => setStation(stations[1]);
+    $("#prev").onclick = $("#next").onclick = () => setStation(stations[(stations.indexOf(state.station) + 1) % stations.length]);
+    $("#search").oninput = () => renderStations();
+    $$('[data-tab]').forEach(b => b.onclick = () => { state.tab = b.dataset.tab; syncTabs(); renderStations(); });
+    $$('[data-region]').forEach(b => b.onclick = () => selectChip("region", b.dataset.region));
+    $$('[data-category]').forEach(b => b.onclick = () => selectChip("category", b.dataset.category));
+    $("#reset-filter").onclick = () => { selectChip("region", "全部"); selectChip("category", "全部"); };
+    $("#apply-filter").onclick = () => { state.tab = "all"; syncTabs(); go("library"); };
+    $$('[data-time-format]').forEach(button => button.onclick = () => setTimeFormat(button.dataset.timeFormat));
+    let autoplayEnabled = true;
+    function setAutoplay(enabled) {
+      autoplayEnabled = enabled;
+      $("#autoplay").checked = enabled;
+    }
+    $("#autoplay").onchange = e => setAutoplay(e.currentTarget.checked);
+    const sleepValues = ["关闭", "15 分钟", "30 分钟", "60 分钟", "90 分钟"]; let sleepIndex = 0;
+    function cycleSleep() {
+      sleepIndex = (sleepIndex + 1) % sleepValues.length;
+      $("#drawer-sleep small").textContent = sleepValues[sleepIndex] + "　›";
+    }
+    $("#drawer-sleep").onclick = cycleSleep;
+    $("#rescan").onclick = scanWifi;
+    $("#wifi-form").onsubmit = e => {
+      e.preventDefault();
+      const submit = e.currentTarget.querySelector('.submit');
+      submit.disabled = true; submit.textContent = "正在连接…";
+      window.setTimeout(() => { submit.disabled = false; submit.textContent = "连接"; go("settings"); }, 800);
+    };
+    $$('[data-demo]').forEach(b => b.onclick = () => {
+      const mode = b.dataset.demo; state.demo = mode;
+      if (["normal", "loading", "error", "offline"].includes(mode)) { applyHomeState(); go("home"); }
+      if (mode === "favorite-empty") { state.tab = "favorites"; state.favorite = false; syncTabs(); go("library"); }
+      if (mode === "filter-empty") { state.tab = "all"; syncTabs(); go("library"); renderStations(true); }
+      if (mode === "wifi-empty") { go("wifi"); renderWifi("empty"); }
+      if (mode === "wifi-error") { go("wifi"); renderWifi("error"); }
+      if (mode === "first-boot") { go("wifi"); renderWifi("loading"); }
+      if (mode === "update") { state.ota = "available"; state.demo = "normal"; applyHomeState(); go("home"); }
+    });
+  </script>
+</body>
+</html>

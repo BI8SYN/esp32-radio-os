@@ -1,0 +1,29 @@
+# ESP-IDF 构建产物
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+dependencies.lock
+
+# 发布分发包。由 tools/package_radio_release.sh 生成、CI 上传到 GitHub Releases——
+# 仓库里不该再存一份几 MB 的二进制。
+dist/
+
+# tools/backup_flash.sh 读出的整片 16MB Flash 镜像
+backup/
+
+# tools/gen_fonts.sh 下载并缓存的字体原料（17MB 可变字体 + 定重后的静态 TTF）。
+# 字体可由脚本按钉死的 commit 随时重新拉取，没有理由入库。
+tools/font-src/
+
+# 编辑器 / 语言服务器索引缓存
+.cache/
+.vscode/
+compile_commands.json
+
+# macOS
+.DS_Store
+
+# 临时文件
+*.log
+*.tmp

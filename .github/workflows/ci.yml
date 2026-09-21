@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支上后推的提交取消前一次未跑完的构建——固件构建要几分钟，排队没意义。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 固件构建
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.5.4
+    steps:
+      - uses: actions/checkout@v4
+      - name: idf.py build
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          idf.py build
+          echo "── 分区占用 ──"
+          idf.py size | tail -20

@@ -1,0 +1,8 @@
+# ES3C28P 16MB flash。app 分区给到 4MB：CJK 字库约 1MB，留足余量。
+# Name,     Type, SubType,  Offset,    Size
+nvs,        data, nvs,      0x9000,    0x7000
+otadata,    data, ota,      0x10000,   0x2000
+phy_init,   data, phy,      0x12000,   0x1000
+ota_0,      app,  ota_0,    0x20000,   0x400000
+ota_1,      app,  ota_1,    0x420000,  0x400000
+storage,    data, spiffs,   0x820000,  0x7E0000

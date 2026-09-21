@@ -1,0 +1,13 @@
+dependencies:
+  idf: ">=5.4"
+  # 屏 ILI9341V（4 线 SPI）
+  espressif/esp_lcd_ili9341: "^2.1.0"
+  # 触摸 FT6336G —— 兼容 FT5x06 驱动
+  espressif/esp_lcd_touch_ft5x06: "^1.1.1"
+  # LVGL 8.4：与厂商例程一致，且 lv_font_conv 1.5.x 生成的字体是 LVGL 8 格式
+  lvgl/lvgl: "~8.4.0"
+  espressif/esp_lvgl_port: "^2.9.0"
+  # ES8311 编解码控制 + I2S 数据通路
+  espressif/esp_codec_dev: "^1.6.2"
+  # MP3 解码（libhelix）
+  chmorgan/esp-libhelix-mp3: "^1.0.3"

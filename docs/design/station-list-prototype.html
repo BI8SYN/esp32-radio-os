@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES3C28P 收音机原型</title>
+<style>
+  /* 灰阶流程原型（design-app-ui 阶段 5）：刻意只用黑白灰 + 系统字体，验证流程与状态，不做视觉风格 */
+  :root {
+    --ground: #e9e9e9;
+    --paper: #ffffff;
+    --ink: #141414;
+    --ink-2: #6b6b6b;
+    --line: #d2d2d2;
+    --scale: 2;
+  }
+  @media (max-width: 1023px) { :root { --scale: 1.35; } }
+  @media (max-width: 479px)  { :root { --scale: 1.05; } }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+  }
+  .shell {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .stage { flex: 0 0 auto; }
+  .stage h1 { font-size: 16px; margin: 0 0 4px; }
+  .stage .sub { color: var(--ink-2); font-size: 12px; margin: 0 0 16px; max-width: calc(320px * var(--scale)); }
+  .device-wrap {
+    width: calc(320px * var(--scale));
+    height: calc(240px * var(--scale));
+  }
+  .device {
+    width: 320px;
+    height: 240px;
+    transform: scale(var(--scale));
+    transform-origin: top left;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    box-sizing: content-box;
+    overflow: hidden;
+    position: relative;
+    user-select: none;
+  }
+  .device * { box-sizing: border-box; }
+
+  /* ---- 设备内通用 ---- */
+  .screen { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--paper); }
+  .hdr {
+    height: 32px; flex: 0 0 32px;
+    display: flex; align-items: center;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .hdr .mid { flex: 1; text-align: center; font-weight: 600; }
+  .hbtn {
+    min-width: 48px; height: 32px; padding: 0 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--ink);
+    background: var(--paper); border: 0; cursor: pointer;
+    font-family: inherit;
+  }
+  .hbtn:disabled { color: var(--line); }
+
+  /* 列表页：左侧竖排 tab + 右侧列表 */
+  .lbody { flex: 1 1 auto; display: flex; min-height: 0; }
+  .vtabs {
+    width: 60px; flex: 0 0 60px;
+    display: flex; flex-direction: column;
+    border-right: 1px solid var(--line);
+  }
+  .vtab {
+    flex: 1; font-size: 12px; color: var(--ink-2);
+    background: var(--paper); border: 0; border-bottom: 1px solid var(--line);
+    cursor: pointer; font-family: inherit;
+  }
+  .vtab:last-child { border-bottom: 0; }
+  .vtab.on { background: var(--ink); color: var(--paper); font-weight: 600; }
+  .content { flex: 1 1 auto; overflow-y: auto; min-width: 0; }
+
+  .row {
+    display: flex; align-items: stretch;
+    border-bottom: 1px solid var(--line);
+    min-height: 43px; cursor: pointer;
+    background: var(--paper);
+  }
+  .row .lft { width: 3px; flex: 0 0 3px; background: transparent; }
+  .row.playing .lft { background: var(--ink); }
+  .row .txt { flex: 1; padding: 4px 0 4px 7px; min-width: 0; }
+  .row .nm { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row.playing .nm { font-weight: 700; }
+  .row .meta { font-size: 10.5px; color: var(--ink-2); }
+  .heart {
+    width: 44px; flex: 0 0 44px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: var(--ink);
+    background: var(--paper); border: 0;
+    cursor: pointer; font-family: inherit;
+  }
+  .pager {
+    width: 100%; min-height: 40px;
+    background: var(--paper); border: 0; border-bottom: 1px solid var(--line);
+    font-size: 11.5px; color: var(--ink-2); cursor: pointer; font-family: inherit;
+  }
+  .pager.done { cursor: default; }
+
+  .statebox { padding: 20px 16px 12px; text-align: center; }
+  .statebox .t1 { font-size: 13px; font-weight: 600; }
+  .statebox .t2 { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
+  .statebox .actions { margin-top: 12px; display: flex; gap: 8px; justify-content: center; }
+  .statebox .actions .btn { height: 36px; flex: 1; max-width: 120px; }
+  .btn {
+    height: 40px; width: 100%;
+    background: var(--paper); color: var(--ink);
+    border: 1px solid var(--ink);
+    font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .btn.pri { background: var(--ink); color: var(--paper); }
+
+  .minibar {
+    height: 36px; flex: 0 0 36px;
+    display: flex; align-items: center; gap: 6px;
+    border-top: 1px solid var(--ink);
+    padding: 0 8px; cursor: pointer;
+    font-size: 12px; background: var(--paper);
+  }
+  .minibar .mnm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .minibar .mst { flex: 0 0 auto; font-size: 10.5px; color: var(--ink-2); }
+
+  /* 筛选页 */
+  .fgroup { padding: 6px 8px 0; }
+  .fgroup .lbl { font-size: 10.5px; color: var(--ink-2); letter-spacing: 1px; margin-bottom: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    height: 30px; padding: 0 12px;
+    background: var(--paper); color: var(--ink);
+    border: 1px solid var(--ink);
+    font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .chip.on { background: var(--ink); color: var(--paper); }
+  .fbottom { flex: 0 0 auto; padding: 6px 8px; border-top: 1px solid var(--line); }
+  .fbottom .btn { height: 40px; }
+
+  /* 播放页 */
+  .pstatus {
+    height: 22px; flex: 0 0 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px; font-size: 10.5px; color: var(--ink-2);
+    border-bottom: 1px solid var(--line);
+  }
+  .pmain { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 16px; text-align: center; min-height: 0; }
+  .pmain .pnm { font-size: 16px; font-weight: 700; line-height: 1.3; }
+  .pmain .pmeta { font-size: 11px; color: var(--ink-2); margin-top: 2px; }
+  .pmain .pstate { font-size: 12px; margin-top: 6px; }
+  .pmain .perr-actions { display: flex; gap: 8px; margin-top: 8px; width: 100%; max-width: 220px; }
+  .pmain .perr-actions .btn { height: 32px; font-size: 11px; }
+  .pctrls { flex: 0 0 auto; display: flex; gap: 8px; padding: 0 8px 6px; }
+  .pctrls .btn { height: 44px; font-size: 14px; }
+  .pctrls .step { flex: 0 0 52px; }
+  .pctrls .big { flex: 0 0 76px; }
+  .pctrls .list { flex: 1; font-size: 12px; }
+  .vol { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 0 12px 6px; }
+  .vicon { flex: 0 0 auto; display: flex; align-items: center; }
+  /* 音量滑动条：整行 34px 热区，方形拇指 14×24，填充量即当前音量 */
+  .vslider { flex: 1; height: 34px; position: relative; touch-action: none; cursor: pointer; }
+  .vzone { position: absolute; left: 7px; right: 7px; top: 0; bottom: 0; }
+  .vtrack { position: absolute; left: 0; right: 0; top: 15px; height: 4px; background: var(--paper); border: 1px solid var(--ink); }
+  .vfill { height: 100%; background: var(--ink); }
+  .vthumb { position: absolute; top: 5px; width: 14px; height: 24px; background: var(--ink); }
+  .pnet { display: flex; align-items: center; gap: 4px; }
+
+  /* ---- 演示面板 ---- */
+  .panel { flex: 0 1 340px; min-width: 280px; font-size: 13px; }
+  .panel section { background: var(--paper); border: 1px solid var(--line); padding: 12px 14px; margin-bottom: 12px; }
+  .panel h2 { font-size: 12px; letter-spacing: 1px; color: var(--ink-2); margin: 0 0 8px; font-weight: 600; }
+  .panel ol { margin: 0; padding-left: 20px; }
+  .panel li { margin-bottom: 4px; }
+  .panel .grp { margin-bottom: 8px; }
+  .panel .grp .g { font-size: 11px; color: var(--ink-2); margin-bottom: 4px; }
+  .jump {
+    background: var(--paper); border: 1px solid var(--ink);
+    font-size: 12px; padding: 5px 10px; margin: 0 4px 6px 0;
+    cursor: pointer; font-family: inherit; color: var(--ink);
+  }
+  .panel label { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; }
+  .panel .note { color: var(--ink-2); font-size: 12px; margin: 0; }
+  .panel .note + .note { margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <div class="stage">
+    <h1>电台列表 · 灰阶流程原型</h1>
+    <p class="sub">ES3C28P 320×240 横屏触摸屏。本阶段验证流程与状态，刻意无视觉风格。</p>
+    <div class="device-wrap"><div class="device" id="device"></div></div>
+  </div>
+
+  <div class="panel">
+    <section>
+      <h2>主场景 · 从头点一遍</h2>
+      <ol>
+        <li>播放页 → 点「电台列表」</li>
+        <li>切到左侧「在线」tab，等目录加载完成</li>
+        <li>点「筛选」→ 选分类「音乐」→ 应用</li>
+        <li>点一个台 → 回播放页，缓冲后播放</li>
+        <li>回列表，点行尾 ♡ 收藏它</li>
+        <li>列表末尾「加载更多」翻第二页</li>
+      </ol>
+    </section>
+    <section>
+      <h2>状态快速跳转</h2>
+      <div class="grp"><div class="g">列表 · 在线</div>
+        <button class="jump" onclick="J.onlineReload()">重新加载</button><button class="jump" onclick="J.onlineError()">加载失败</button><button class="jump" onclick="J.onlineEmpty()">筛选空结果</button><button class="jump" onclick="J.onlineOffline()">离线态</button>
+      </div>
+      <div class="grp"><div class="g">列表 · 收藏</div>
+        <button class="jump" onclick="J.favData()">有收藏</button><button class="jump" onclick="J.favEmpty()">清空收藏（空态）</button>
+      </div>
+      <div class="grp"><div class="g">播放页</div>
+        <button class="jump" onclick="J.pPlaying()">播放中</button><button class="jump" onclick="J.pBuffering()">缓冲中</button><button class="jump" onclick="J.pStopped()">已停止</button><button class="jump" onclick="J.pError()">播放失败</button>
+      </div>
+      <div class="grp"><div class="g">其它</div>
+        <button class="jump" onclick="J.filter()">筛选页</button><button class="jump" onclick="J.preset()">精选列表</button>
+      </div>
+    </section>
+    <section>
+      <h2>模拟开关</h2>
+      <label><input type="checkbox" id="simOffline" onchange="J.toggle('simOffline',this.checked)"> 模拟 Wi-Fi 断开</label>
+      <label><input type="checkbox" id="simDirFail" onchange="J.toggle('simDirFail',this.checked)"> 模拟目录加载失败（重试也失败）</label>
+      <label><input type="checkbox" id="simPlayFail" onchange="J.toggle('simPlayFail',this.checked)"> 模拟播放失败（缓冲转失败）</label>
+    </section>
+    <section>
+      <h2>说明</h2>
+      <p class="note">电台是演示样本（精选 8 个来自 2026-09-02 实测可用的直连流；在线目录 14 个、两页）。真机在线目录来自 radio-browser API，条数以接口为准。</p>
+      <p class="note">交互决策与状态清单见 docs/design/station-list.md，逐条可推翻。</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 数据 ---------- */
+  var PRESET = [
+    { id: 'p1', name: 'CNR-1 中国之声', cat: '新闻', region: '内地', fmt: '64k MP3' },
+    { id: 'p2', name: '500首华语经典', cat: '音乐', region: '内地', fmt: '64k MP3' },
+    { id: 'p3', name: '两广之声音乐台', cat: '音乐', region: '内地', fmt: '64k MP3' },
+    { id: 'p4', name: '上海新闻广播', cat: '新闻', region: '内地', fmt: '64k MP3' },
+    { id: 'p5', name: '上海动感101', cat: '音乐', region: '内地', fmt: '64k MP3' },
+    { id: 'p6', name: 'AsiaFM 高清音乐台', cat: '音乐', region: '港澳台', fmt: '128k AAC' },
+    { id: 'p7', name: 'RTHK Radio 1', cat: '新闻', region: '港澳台', fmt: '128k MP3' },
+    { id: 'p8', name: 'AsiaFM 亚洲粤语台', cat: '粤语', region: '港澳台', fmt: '64k MP3' }
+  ];
+  var ONLINE1 = [
+    { id: 'o1', name: 'CNR-2 经济之声', cat: '经济', region: '内地', fmt: '64k MP3' },
+    { id: 'o2', name: '北京交通广播', cat: '交通', region: '内地', fmt: '64k MP3' },
+    { id: 'o3', name: '清晨音乐台', cat: '音乐', region: '内地', fmt: '96k MP3' },
+    { id: 'o4', name: '怀集音乐之声', cat: '音乐', region: '内地', fmt: '64k MP3' },
+    { id: 'o5', name: '楚天交通广播', cat: '交通', region: '内地', fmt: '64k MP3' },
+    { id: 'o6', name: '深圳飞扬971', cat: '音乐', region: '内地', fmt: '64k MP3' },
+    { id: 'o7', name: '江苏新闻广播', cat: '新闻', region: '内地', fmt: '64k MP3' },
+    { id: 'o8', name: '珠江经济台', cat: '经济', region: '内地', fmt: '64k MP3' }
+  ];
+  var ONLINE2 = [
+    { id: 'o9', name: '湖南交通频道', cat: '交通', region: '内地', fmt: '64k MP3' },
+    { id: 'o10', name: '广东音乐之声', cat: '音乐', region: '内地', fmt: '64k MP3' },
+    { id: 'o11', name: '河南新闻广播', cat: '新闻', region: '内地', fmt: '64k MP3' },
+    { id: 'o12', name: '福建音乐广播', cat: '音乐', region: '内地', fmt: '64k MP3' },
+    { id: 'o13', name: '广东城市之声', cat: '粤语', region: '内地', fmt: '64k MP3' },
+    { id: 'o14', name: '乌海交通音乐广播', cat: '交通', region: '内地', fmt: '64k MP3' }
+  ];
+  var ALL = {};
+  PRESET.concat(ONLINE1, ONLINE2).forEach(function (s) { ALL[s.id] = s; });
+
+  var CATS = ['全部', '新闻', '音乐', '交通', '经济', '粤语', '文艺'];
+  var REGIONS = ['全部', '内地', '港澳台'];
+  var SORTS = ['热门', '名称'];
+  var DEF_FILTER = { cat: '全部', region: '全部', sort: '热门' };
+
+  /* ---------- 状态 ---------- */
+  var S = {
+    screen: 'player',            // player | list | filter
+    tab: 'preset',               // fav | preset | online
+    online: 'idle',              // idle | loading | list | error | empty | offline
+    onlinePages: 0,              // 已加载页数
+    loadingMore: false,
+    filter: { cat: '全部', region: '全部', sort: '热门' },
+    draft: null,
+    favs: ['p1', 'p2'],
+    player: { id: 'p1', status: 'stopped', src: PRESET.map(function (s) { return s.id; }) },
+    volume: 60,
+    simOffline: false, simDirFail: false, simPlayFail: false
+  };
+  var loadTimer = null, bufTimer = null;
+
+  function esc(t) { return t.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function clearTimers() {
+    if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+    if (bufTimer) { clearTimeout(bufTimer); bufTimer = null; }
+  }
+
+  /* ---------- 数据查询 ---------- */
+  function onlineFiltered() {
+    var pool = ONLINE1.concat(ONLINE2);
+    var f = S.filter;
+    var out = pool.filter(function (s) {
+      return (f.cat === '全部' || s.cat === f.cat) && (f.region === '全部' || s.region === f.region);
+    });
+    if (f.sort === '名称') out.sort(function (a, b) { return a.name.localeCompare(b.name, 'zh-Hans-CN'); });
+    return out;
+  }
+  function onlineVisible() {
+    var all = onlineFiltered();
+    return { shown: all.slice(0, S.onlinePages * 8), total: all.length };
+  }
+  function filterCount(f) {
+    var n = 0;
+    if (f.cat !== DEF_FILTER.cat) n++;
+    if (f.region !== DEF_FILTER.region) n++;
+    if (f.sort !== DEF_FILTER.sort) n++;
+    return n;
+  }
+
+  /* ---------- 在线目录加载 ---------- */
+  function startOnlineLoad() {
+    clearTimers();
+    S.online = 'loading';
+    S.onlinePages = 0;
+    loadTimer = setTimeout(function () {
+      loadTimer = null;
+      if (S.simOffline) { S.online = 'offline'; }
+      else if (S.simDirFail) { S.online = 'error'; }
+      else {
+        S.onlinePages = 1;
+        S.online = onlineFiltered().length ? 'list' : 'empty';
+      }
+      render();
+    }, 1200);
+    render();
+  }
+  function enterOnlineTab() {
+    S.tab = 'online';
+    if (S.simOffline) { S.online = 'offline'; render(); return; }
+    if (S.online === 'idle' || S.online === 'offline') startOnlineLoad();
+    else render();
+  }
+
+  /* ---------- 播放 ---------- */
+  function playStation(id, srcIds) {
+    clearTimers();
+    S.player = { id: id, status: 'buffering', src: srcIds.slice() };
+    S.screen = 'player';
+    bufTimer = setTimeout(function () {
+      bufTimer = null;
+      if (S.simOffline) { S.player.status = 'error-net'; }
+      else if (S.simPlayFail) { S.player.status = 'error'; }
+      else { S.player.status = 'playing'; }
+      render();
+    }, 1200);
+    render();
+  }
+  function stepStation(dir) {
+    var src = S.player.src.length ? S.player.src : PRESET.map(function (s) { return s.id; });
+    var i = src.indexOf(S.player.id);
+    var next = src[(i + dir + src.length) % src.length];
+    playStation(next, src);
+  }
+
+  /* ---------- 渲染 ---------- */
+  var device = document.getElementById('device');
+
+  function rowHtml(s, ctx) {
+    var playing = S.player.id === s.id;
+    var fav = S.favs.indexOf(s.id) >= 0;
+    return '<div class="row' + (playing ? ' playing' : '') + '" data-play="' + s.id + '" data-ctx="' + ctx + '">'
+      + '<div class="lft"></div>'
+      + '<div class="txt"><div class="nm">' + esc(s.name) + '</div>'
+      + '<div class="meta">' + s.cat + ' · ' + s.fmt + '</div></div>'
+      + '<button class="heart" data-fav="' + s.id + '" aria-label="收藏">' + (fav ? '♥' : '♡') + '</button>'
+      + '</div>';
+  }
+
+  function stateboxHtml(t1, t2, actions) {
+    return '<div class="statebox"><div class="t1">' + t1 + '</div>'
+      + (t2 ? '<div class="t2">' + t2 + '</div>' : '')
+      + (actions ? '<div class="actions">' + actions + '</div>' : '') + '</div>';
+  }
+
+  function listContentHtml() {
+    if (S.tab === 'fav') {
+      if (!S.favs.length) {
+        return stateboxHtml('还没有收藏电台', '在精选或在线列表里点 ♡ 收藏',
+          '<button class="btn pri" data-act="goPreset">去看精选</button>');
+      }
+      return S.favs.map(function (id) { return rowHtml(ALL[id], 'fav'); }).join('');
+    }
+    if (S.tab === 'preset') {
+      return PRESET.map(function (s) { return rowHtml(s, 'preset'); }).join('');
+    }
+    /* online */
+    if (S.online === 'loading') return stateboxHtml('正在加载电台目录…', 'radio-browser.info');
+    if (S.online === 'error') {
+      return stateboxHtml('目录加载失败', '无法连接 radio-browser 镜像。收藏和精选仍可使用。',
+        '<button class="btn pri" data-act="retryLoad">重试</button>'
+        + '<button class="btn" data-act="retryMirror">换镜像重试</button>');
+    }
+    if (S.online === 'offline') {
+      return stateboxHtml('Wi-Fi 未连接', '在线目录需要网络；收藏和精选仍可查看。',
+        '<button class="btn pri" data-act="retryLoad">重试</button>');
+    }
+    if (S.online === 'empty') {
+      var fdesc = [];
+      if (S.filter.cat !== '全部') fdesc.push('分类：' + S.filter.cat);
+      if (S.filter.region !== '全部') fdesc.push('地区：' + S.filter.region);
+      return stateboxHtml('没有符合筛选的电台', fdesc.join('，') || '',
+        '<button class="btn pri" data-act="clearFilter">清除筛选</button>');
+    }
+    var v = onlineVisible();
+    var html = v.shown.map(function (s) { return rowHtml(s, 'online'); }).join('');
+    if (S.loadingMore) html += '<button class="pager done">加载中…</button>';
+    else if (v.shown.length < v.total) html += '<button class="pager" data-act="loadMore">加载更多（已显示 ' + v.shown.length + '/' + v.total + '）</button>';
+    else html += '<button class="pager done">已加载全部 ' + v.total + ' 个</button>';
+    return html;
+  }
+
+  function minibarHtml() {
+    var st = ALL[S.player.id];
+    var stTxt = { playing: '播放中', buffering: '缓冲中…', stopped: '已停止', error: '失败', 'error-net': '失败' }[S.player.status];
+    var icon = S.player.status === 'playing' ? '▶' : '▮▮';
+    return '<div class="minibar" data-act="goPlayer">'
+      + '<span>' + icon + '</span><span class="mnm">' + esc(st.name) + '</span>'
+      + '<span class="mst">' + stTxt + '</span></div>';
+  }
+
+  function listScreenHtml() {
+    var fc = filterCount(S.filter);
+    var filterBtn = S.tab === 'online'
+      ? '<button class="hbtn" data-act="goFilter">筛选' + (fc ? '·' + fc : '') + '</button>'
+      : '<span style="min-width:48px"></span>';
+    return '<div class="screen">'
+      + '<div class="hdr"><button class="hbtn" data-act="goPlayer">‹</button>'
+      + '<div class="mid">电台列表</div>' + filterBtn + '</div>'
+      + '<div class="lbody">'
+      + '<div class="vtabs">'
+      + '<button class="vtab' + (S.tab === 'fav' ? ' on' : '') + '" data-tab="fav">收藏</button>'
+      + '<button class="vtab' + (S.tab === 'preset' ? ' on' : '') + '" data-tab="preset">精选</button>'
+      + '<button class="vtab' + (S.tab === 'online' ? ' on' : '') + '" data-tab="online">在线</button>'
+      + '</div>'
+      + '<div class="content">' + listContentHtml() + '</div>'
+      + '</div>'
+      + minibarHtml() + '</div>';
+  }
+
+  function chipsHtml(list, cur, key) {
+    return '<div class="chips">' + list.map(function (v) {
+      return '<button class="chip' + (v === cur ? ' on' : '') + '" data-chip="' + key + ':' + v + '">' + v + '</button>';
+    }).join('') + '</div>';
+  }
+
+  function filterScreenHtml() {
+    var d = S.draft;
+    return '<div class="screen">'
+      + '<div class="hdr"><button class="hbtn" data-act="cancelFilter">✕</button>'
+      + '<div class="mid">筛选</div><button class="hbtn" data-act="resetFilter">重置</button></div>'
+      + '<div class="content">'
+      + '<div class="fgroup"><div class="lbl">分类</div>' + chipsHtml(CATS, d.cat, 'cat') + '</div>'
+      + '<div class="fgroup"><div class="lbl">地区</div>' + chipsHtml(REGIONS, d.region, 'region') + '</div>'
+      + '<div class="fgroup"><div class="lbl">排序</div>' + chipsHtml(SORTS, d.sort, 'sort') + '</div>'
+      + '</div>'
+      + '<div class="fbottom"><button class="btn pri" data-act="applyFilter">应用</button></div>'
+      + '</div>';
+  }
+
+  /* 常规弧形 Wi-Fi 图标；离线 = 弧线变灰 + 斜杠 + 文字 */
+  function wifiIconHtml() {
+    var off = S.simOffline;
+    var col = off ? 'var(--line)' : 'var(--ink)';
+    return (off ? '<span>离线</span>' : '')
+      + '<svg width="18" height="14" viewBox="0 0 24 18" fill="none" style="display:block">'
+      + '<path d="M2.1 6.1 A14 14 0 0 1 21.9 6.1" stroke="' + col + '" stroke-width="2" stroke-linecap="round"/>'
+      + '<path d="M5.28 9.28 A9.5 9.5 0 0 1 18.72 9.28" stroke="' + col + '" stroke-width="2" stroke-linecap="round"/>'
+      + '<path d="M8.46 12.46 A5 5 0 0 1 15.54 12.46" stroke="' + col + '" stroke-width="2" stroke-linecap="round"/>'
+      + '<circle cx="12" cy="16" r="1.8" fill="' + col + '"/>'
+      + (off ? '<path d="M4 2 L20 17" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>' : '')
+      + '</svg>';
+  }
+
+  /* 喇叭图标：波纹数反映音量（0=静音叉，≤50 一道，>50 两道） */
+  function volIconHtml() {
+    var p = S.volume;
+    return '<svg width="18" height="16" viewBox="0 0 20 18" fill="none" style="display:block">'
+      + '<path d="M2 6 H6 L11 2 V16 L6 12 H2 Z" fill="var(--ink)"/>'
+      + '<path class="w1" d="M13.5 6 A4 4 0 0 1 13.5 12" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"' + (p > 0 ? '' : ' style="display:none"') + '/>'
+      + '<path class="w2" d="M15.5 4 A7 7 0 0 1 15.5 14" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"' + (p > 50 ? '' : ' style="display:none"') + '/>'
+      + '<path class="wx" d="M14 7 L18 11 M18 7 L14 11" stroke="var(--ink)" stroke-width="1.8" stroke-linecap="round"' + (p === 0 ? '' : ' style="display:none"') + '/>'
+      + '</svg>';
+  }
+
+  function playerScreenHtml() {
+    var st = ALL[S.player.id];
+    var status = S.player.status;
+    var stateLine, errActions = '';
+    if (status === 'playing') stateLine = '● 正在播放';
+    else if (status === 'buffering') stateLine = '缓冲中…';
+    else if (status === 'stopped') stateLine = '已停止';
+    else {
+      stateLine = status === 'error-net' ? '播放失败：网络中断' : '播放失败：连接超时';
+      errActions = '<div class="perr-actions">'
+        + '<button class="btn pri" data-act="retryPlay">重试</button>'
+        + '<button class="btn" data-act="nextStation">下一台</button></div>';
+    }
+    var playBtn = (status === 'playing' || status === 'buffering') ? '■' : '▶';
+    return '<div class="screen">'
+      + '<div class="pstatus"><span>≡</span><span class="pnet">' + wifiIconHtml() + '</span></div>'
+      + '<div class="pmain"><div class="pnm">' + esc(st.name) + '</div>'
+      + '<div class="pmeta">' + st.cat + ' · ' + st.fmt + '</div>'
+      + '<div class="pstate">' + stateLine + '</div>' + errActions + '</div>'
+      + '<div class="pctrls">'
+      + '<button class="btn step" data-act="prevStation">◀◀</button>'
+      + '<button class="btn pri big" data-act="togglePlay">' + playBtn + '</button>'
+      + '<button class="btn step" data-act="nextStation">▶▶</button>'
+      + '<button class="btn list" data-act="goList">电台列表</button></div>'
+      + '<div class="vol"><span class="vicon">' + volIconHtml() + '</span>'
+      + '<div class="vslider"><div class="vzone">'
+      + '<div class="vtrack"><div class="vfill" style="width:' + S.volume + '%"></div></div>'
+      + '<div class="vthumb" style="left:calc(' + S.volume + '% - 7px)"></div>'
+      + '</div></div></div>'
+      + '</div>';
+  }
+
+  function render() {
+    if (S.screen === 'list') device.innerHTML = listScreenHtml();
+    else if (S.screen === 'filter') device.innerHTML = filterScreenHtml();
+    else device.innerHTML = playerScreenHtml();
+  }
+
+  /* ---------- 事件（委托） ---------- */
+  var ACTIONS = {
+    goPlayer: function () { S.screen = 'player'; },
+    goList: function () { S.screen = 'list'; },
+    goPreset: function () { S.tab = 'preset'; },
+    goFilter: function () { S.draft = { cat: S.filter.cat, region: S.filter.region, sort: S.filter.sort }; S.screen = 'filter'; },
+    cancelFilter: function () { S.draft = null; S.screen = 'list'; },
+    resetFilter: function () { S.draft = { cat: '全部', region: '全部', sort: '热门' }; },
+    applyFilter: function () { S.filter = S.draft; S.draft = null; S.screen = 'list'; startOnlineLoad(); return true; },
+    clearFilter: function () { S.filter = { cat: '全部', region: '全部', sort: '热门' }; startOnlineLoad(); return true; },
+    retryLoad: function () { startOnlineLoad(); return true; },
+    retryMirror: function () { startOnlineLoad(); return true; },
+    loadMore: function () {
+      S.loadingMore = true;
+      render();
+      setTimeout(function () { S.loadingMore = false; S.onlinePages++; render(); }, 800);
+      return true;
+    },
+    togglePlay: function () {
+      if (S.player.status === 'playing' || S.player.status === 'buffering') { clearTimers(); S.player.status = 'stopped'; }
+      else { playStation(S.player.id, S.player.src); return true; }
+    },
+    retryPlay: function () { playStation(S.player.id, S.player.src); return true; },
+    prevStation: function () { stepStation(-1); return true; },
+    nextStation: function () { stepStation(1); return true; }
+  };
+
+  device.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-fav],[data-act],[data-tab],[data-chip],[data-play]');
+    if (!el) return;
+    if (el.dataset.fav) {
+      var id = el.dataset.fav, i = S.favs.indexOf(id);
+      if (i >= 0) S.favs.splice(i, 1); else S.favs.push(id);
+      render(); return;
+    }
+    if (el.dataset.tab) {
+      if (el.dataset.tab === 'online') { enterOnlineTab(); return; }
+      S.tab = el.dataset.tab; render(); return;
+    }
+    if (el.dataset.chip) {
+      var kv = el.dataset.chip.split(':');
+      S.draft[kv[0]] = kv[1]; render(); return;
+    }
+    if (el.dataset.play) {
+      var ctx = el.dataset.ctx, src;
+      if (ctx === 'fav') src = S.favs.slice();
+      else if (ctx === 'preset') src = PRESET.map(function (s) { return s.id; });
+      else src = onlineVisible().shown.map(function (s) { return s.id; });
+      playStation(el.dataset.play, src); return;
+    }
+    var fn = ACTIONS[el.dataset.act];
+    if (fn) { var handled = fn(); if (!handled) render(); }
+  });
+
+  /* 音量滑动条拖动：只更新滑块自身，不整屏重绘（避免打断拖动） */
+  device.addEventListener('pointerdown', function (e) {
+    var sl = e.target.closest('.vslider');
+    if (!sl) return;
+    e.preventDefault();
+    var zone = sl.querySelector('.vzone');
+    var fill = zone.querySelector('.vfill');
+    var thumb = zone.querySelector('.vthumb');
+    var icon = sl.closest('.vol').querySelector('.vicon');
+    function setFrom(ev) {
+      var r = zone.getBoundingClientRect();
+      var p = Math.round(Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * 100);
+      S.volume = p;
+      fill.style.width = p + '%';
+      thumb.style.left = 'calc(' + p + '% - 7px)';
+      icon.querySelector('.w1').style.display = p > 0 ? '' : 'none';
+      icon.querySelector('.w2').style.display = p > 50 ? '' : 'none';
+      icon.querySelector('.wx').style.display = p === 0 ? '' : 'none';
+    }
+    setFrom(e);
+    sl.setPointerCapture(e.pointerId);
+    function mv(ev) { setFrom(ev); }
+    function up() {
+      sl.removeEventListener('pointermove', mv);
+      sl.removeEventListener('pointerup', up);
+      sl.removeEventListener('pointercancel', up);
+    }
+    sl.addEventListener('pointermove', mv);
+    sl.addEventListener('pointerup', up);
+    sl.addEventListener('pointercancel', up);
+  });
+
+  /* ---------- 演示面板 ---------- */
+  window.J = {
+    onlineReload: function () { S.screen = 'list'; S.simOffline = false; S.simDirFail = false; syncChecks(); S.filter = { cat: '全部', region: '全部', sort: '热门' }; S.tab = 'online'; startOnlineLoad(); },
+    onlineError: function () { clearTimers(); S.screen = 'list'; S.tab = 'online'; S.online = 'error'; render(); },
+    onlineEmpty: function () { clearTimers(); S.screen = 'list'; S.tab = 'online'; S.filter = { cat: '文艺', region: '全部', sort: '热门' }; S.online = 'empty'; render(); },
+    onlineOffline: function () { clearTimers(); S.screen = 'list'; S.tab = 'online'; S.online = 'offline'; render(); },
+    favData: function () { S.screen = 'list'; S.tab = 'fav'; if (!S.favs.length) S.favs = ['p1', 'p2']; render(); },
+    favEmpty: function () { S.screen = 'list'; S.tab = 'fav'; S.favs = []; render(); },
+    pPlaying: function () { clearTimers(); S.screen = 'player'; S.player.status = 'playing'; render(); },
+    pBuffering: function () { playStation(S.player.id, S.player.src); },
+    pStopped: function () { clearTimers(); S.screen = 'player'; S.player.status = 'stopped'; render(); },
+    pError: function () { clearTimers(); S.screen = 'player'; S.player.status = 'error'; render(); },
+    filter: function () { S.screen = 'filter'; S.draft = S.draft || { cat: S.filter.cat, region: S.filter.region, sort: S.filter.sort }; render(); },
+    preset: function () { S.screen = 'list'; S.tab = 'preset'; render(); },
+    toggle: function (key, val) {
+      S[key] = val;
+      if (key === 'simOffline' && S.screen === 'list' && S.tab === 'online') {
+        if (val) { clearTimers(); S.online = 'offline'; }
+        else if (S.online === 'offline') { startOnlineLoad(); return; }
+      }
+      render();
+    }
+  };
+  function syncChecks() {
+    document.getElementById('simOffline').checked = S.simOffline;
+    document.getElementById('simDirFail').checked = S.simDirFail;
+    document.getElementById('simPlayFail').checked = S.simPlayFail;
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
