@@ -94,7 +94,16 @@ tools/idf.sh -p /dev/cu.usbmodem21201 flash monitor
 `export.sh` 按当前系统 python3 的版本号去拼 venv 路径，系统 python 升级过就会找不到——
 用这个脚本就不用管这件事。已经在 IDF 环境里（比如 CI 容器）直接 `idf.py build` 即可。
 
-固件约 2.56MB，app 分区 4MB，仍有约 36% 空间余量。首次发布可通过 USB 完整烧录
+需要 **ESP-IDF 5.4 以上**，且 `idf-component-manager` **必须是 2.5 以上**（2.x 范围内，
+IDF 5.5 要求 `~=2.2`）。2.4.x 处理 lvgl 8.4 的可选依赖时会以
+`Missing required kconfig option after retry` 失败，且与本工程的配置无关——
+`sdkconfig.defaults` 为空也一样。撞上了就升：
+
+```bash
+pip install -U 'idf-component-manager>=2.5,<3'
+```
+
+固件约 2.61MB，app 分区 4MB，仍有约 35% 空间余量。首次发布可通过 USB 完整烧录
 bootloader、分区表、OTA 数据和 app；之后由设备主动访问签名更新源，不提供局域网上传入口。
 
 ## 代码结构

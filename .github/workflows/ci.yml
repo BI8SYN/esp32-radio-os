@@ -18,6 +18,21 @@ jobs:
     container: espressif/idf:v5.5.4
     steps:
       - uses: actions/checkout@v4
+
+      # espressif/idf:v5.5.4 这个镜像自带 idf-component-manager 2.4.8，它处理
+      # lvgl 8.4 的可选依赖时会失败：lvgl 用 LV_USE_LIBJPEG_TURBO / LV_USE_LIBPNG /
+      # LV_USE_LZ4 这些没有任何 Kconfig 定义的符号作为可选依赖的启用条件，2.4.8 会
+      # 因此陷入 kconfig 重试并以「Missing required kconfig option after retry」告终
+      # ——即使 sdkconfig.defaults 完全为空也一样，所以这跟本工程的配置无关。
+      # 2.5 修掉了这个行为。上限锁在 3 以下，因为 IDF 5.5.4 自身要求 ~=2.2，装到
+      # 3.x 会被它的 Python 依赖检查拒绝。
+      - name: 升级 idf-component-manager（绕开镜像自带 2.4.8 的缺陷）
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          pip install -U 'idf-component-manager>=2.5,<3'
+          pip show idf-component-manager | grep '^Version'
+
       - name: idf.py build
         shell: bash
         run: |
