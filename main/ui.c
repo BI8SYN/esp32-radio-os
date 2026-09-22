@@ -2797,15 +2797,15 @@ static void build_player(void)
     lv_obj_set_style_text_align(lbl_name, LV_TEXT_ALIGN_CENTER, 0);
 
     home_visual = build_audio_visual(scr_player, 236, 44);
-    lv_obj_set_pos(home_visual, 42, 106);
+    lv_obj_set_pos(home_visual, 42, 100);
 
     lbl_state = mk_label(scr_player, "已暂停", &font_cjk_14, C_INK2);
     lv_obj_set_size(lbl_state, 304, 18);
-    lv_obj_set_pos(lbl_state, 8, 150);
+    lv_obj_set_pos(lbl_state, 8, 144);
     lv_obj_set_style_text_align(lbl_state, LV_TEXT_ALIGN_CENTER, 0);
 
     home_update_banner = mk_box(scr_player, 304, 22);
-    lv_obj_set_pos(home_update_banner, 8, 146);
+    lv_obj_set_pos(home_update_banner, 8, 140);
     lv_obj_set_style_radius(home_update_banner, 8, 0);
     lv_obj_set_style_bg_color(home_update_banner, C_TINT, 0);
     lv_obj_set_style_bg_opa(home_update_banner, LV_OPA_COVER, 0);
@@ -2825,7 +2825,7 @@ static void build_player(void)
     lv_obj_align(update_chevron, LV_ALIGN_RIGHT_MID, -12, 0);
 
     row_err = mk_box(scr_player, 320, 46);
-    lv_obj_set_pos(row_err, 0, 168);
+    lv_obj_set_pos(row_err, 0, 162);
     lv_obj_set_flex_flow(row_err, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row_err, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(row_err, 8, 0);
@@ -2836,7 +2836,7 @@ static void build_player(void)
     lv_obj_set_size(b_nextx, 104, 40);
 
     player_controls = mk_box(scr_player, 320, 46);
-    lv_obj_set_pos(player_controls, 0, 168);
+    lv_obj_set_pos(player_controls, 0, 162);
     lv_obj_set_flex_flow(player_controls, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(player_controls, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
@@ -2852,6 +2852,12 @@ static void build_player(void)
         lv_obj_set_style_bg_opa(buttons[i], LV_OPA_TRANSP, 0);
         lv_obj_set_style_bg_opa(buttons[i], LV_OPA_COVER, LV_STATE_PRESSED);
         lv_obj_set_style_bg_color(buttons[i], C_TINT, LV_STATE_PRESSED);
+        /* 只缩命中区，不缩可视尺寸：图标和按下高亮都按对象坐标绘制，与命中区无关。
+         * lv_coord_t 是有符号的，而 lv_obj_get_click_area() 做的是 x1 -= pad / x2 += pad，
+         * 所以负值会向内收缩。54x44 的命中区变成 42x32，纵向从 y163-207 收到 y169-201：
+         * 与下方音量带之间的惰性区从 7px 扩到 13px，相邻按钮之间也多出 18px 互不响应的
+         * 空隙，顺带减少上一台/下一台之间的错点。*/
+        lv_obj_set_ext_click_area(buttons[i], -6);
     }
     btn_player_play = buttons[2];
     btn_player_fav = buttons[4];
@@ -2875,6 +2881,12 @@ static void build_player(void)
     lv_obj_set_style_radius(sld_vol, 10, LV_PART_KNOB);
     lv_obj_set_style_bg_color(sld_vol, C_ACCENT, LV_PART_KNOB);
     lv_obj_set_style_pad_all(sld_vol, 8, LV_PART_KNOB);
+    /* 滑块本体只有 4px 高，而指尖在这块屏上约 45px（320px / 约 57mm ≈ 5.6 px/mm）。
+     * LVGL 的命中区就是对象矩形加 ext_click_area，所以不扩的话必须把触点落进那 4px
+     * 窄条，往上偏一点就打到上面那行播放/换台按钮。扩 11px 让触摸带覆盖 y 214-240，
+     * 视觉仍是原来的细线。（lv_slider.c 里那段"只测旋钮"的 HIT_TEST 处理是死代码：
+     * 它要求对象带 LV_OBJ_FLAG_ADV_HITTEST，而 slider 与基类 bar 都从不设这个标志。）*/
+    lv_obj_set_ext_click_area(sld_vol, 11);
     lv_obj_add_event_cb(sld_vol, on_vol_change, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(sld_vol, on_vol_release, LV_EVENT_RELEASED, NULL);
 
