@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-set(PROJECT_VER "1.1.6" CACHE STRING "Radio OS semantic version" FORCE)
+set(PROJECT_VER "1.1.7" CACHE STRING "Radio OS semantic version" FORCE)
 set(RADIO_OTA_URL "http://8.138.130.141/radio-os/manifest.json" CACHE STRING "URL of the signed Radio OS OTA manifest")
 project(radio)

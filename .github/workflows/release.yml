@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  # 不制造一个假版本也能验证整条流水线：跑完构建与打包，产物作为 workflow artifact
+  # 留 7 天，不创建 Release。
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 只构建打包，不创建 Release
+        type: boolean
+        default: true
+
+jobs:
+  release:
+    name: 构建并发布
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.5.4
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # 容器里跑 git 会撞上 "dubious ownership"（checkout 的文件属主与容器内用户不同）。
+      - name: 让 git 接受这个工作区
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      # 镜像自带 idf-component-manager 2.4.8，它处理 lvgl 8.4 的可选依赖时会以
+      # "Missing required kconfig option after retry" 失败，与本工程配置无关。详见 ci.yml。
+      - name: 升级 idf-component-manager（绕开镜像自带 2.4.8 的缺陷）
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          pip install -U 'idf-component-manager>=2.5,<3'
+          pip show idf-component-manager | grep '^Version'
+
+      # PROJECT_VER 是唯一权威版本号——它被嵌进 bin，设备的设置页和启动日志显示的都是它。
+      # tag 必须和它一致，否则 Release 的名字与固件自报的版本会对不上号，而这种错配装到
+      # 设备上才会发现。tag 带 v 前缀，PROJECT_VER 不带，所以比较时去掉前缀。
+      - name: 校验 tag 与 PROJECT_VER 一致
+        id: ver
+        shell: bash
+        run: |
+          VER=$(sed -nE 's/^set\(PROJECT_VER "([^"]+)".*$/\1/p' CMakeLists.txt)
+          [[ -n "$VER" ]] || { echo "::error::CMakeLists.txt 里读不到 PROJECT_VER"; exit 1; }
+          echo "PROJECT_VER = $VER"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_REF_TYPE" == tag ]]; then
+            if [[ "${GITHUB_REF_NAME#v}" != "$VER" ]]; then
+              echo "::error::tag ($GITHUB_REF_NAME) 与 PROJECT_VER ($VER) 不一致。"
+              echo "::error::改 CMakeLists.txt 的 PROJECT_VER，或用正确的名字重打 tag。"
+              exit 1
+            fi
+          fi
+
+      # 版本说明是发布的一部分，缺了就不让发。设备上看不到它（OTA 说明另有一份），但仓库
+      # 里必须留下这一版改了什么——出问题时要靠它定位是哪一版引入的。
+      - name: 校验版本说明与 OTA 说明存在
+        shell: bash
+        run: |
+          VER=${{ steps.ver.outputs.version }}
+          NOTES="docs/releases/radio-os-$VER.md"
+          OTA_NOTES="docs/releases/radio-os-$VER-ota-notes.txt"
+          [[ -f "$NOTES" ]] || { echo "::error::缺少版本说明 $NOTES"; exit 1; }
+          [[ -f "$OTA_NOTES" ]] || { echo "::error::缺少 OTA 说明 $OTA_NOTES"; exit 1; }
+          BYTES=$(wc -c < "$OTA_NOTES")
+          if (( BYTES > 191 )); then
+            echo "::error::$OTA_NOTES 有 $BYTES 字节，超过固件可接收的 191 字节"
+            exit 1
+          fi
+          echo "版本说明 $NOTES（$(wc -l < "$NOTES") 行）"
+          echo "OTA 说明 $OTA_NOTES（$BYTES 字节）"
+
+      - name: 打发布包
+        shell: bash
+        run: |
+          . "$IDF_PATH/export.sh"
+          tools/package_radio_release.sh ${{ steps.ver.outputs.version }}
+          echo "── 分区占用 ──"
+          idf.py size | tail -20
+
+      # Release 资产名必须是纯 ASCII —— GitHub 会把非 ASCII 字符替换成点。本项目的产物名
+      # 本来就是 ASCII，这里只是把它们从 dist/ 归置到一处便于上传。
+      - name: 归置 release 资产
+        shell: bash
+        run: |
+          VER=${{ steps.ver.outputs.version }}
+          mkdir -p assets
+          cp "dist/radio-os-$VER/radio-os-$VER-ota.bin" assets/
+          cp "dist/radio-os-$VER/radio-os-$VER-0x0.bin" assets/
+          cp "dist/radio-os-$VER/SHA256SUMS"            assets/
+          ls -lh assets
+          cat assets/SHA256SUMS
+
+      - name: 上传为 workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: radio-os-${{ steps.ver.outputs.version }}
+          path: assets/
+          retention-days: 7
+
+      - name: 创建 Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Radio OS ${{ steps.ver.outputs.version }}
+          body_path: docs/releases/radio-os-${{ steps.ver.outputs.version }}.md
+          files: assets/*
+          fail_on_unmatched_files: true
+
+      - name: 提醒发 OTA
+        if: github.ref_type == 'tag'
+        run: |
+          echo "### Release 已创建 :white_check_mark:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**OTA 还没发。** 设备端的固件升级走自建服务器，签名私钥只在那台机器上，" >> $GITHUB_STEP_SUMMARY
+          echo "不在 CI 里做（那需要把服务器凭据放进公开仓库的 secrets）。" >> $GITHUB_STEP_SUMMARY
+          echo "线上清单必须原子替换并保留上一版回滚副本，见 docs/release-process.md。" >> $GITHUB_STEP_SUMMARY
