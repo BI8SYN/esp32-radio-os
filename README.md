@@ -7,9 +7,8 @@ An internet radio firmware for the LCDwiki 2.8" ESP32-S3 Display board
 (SKU: ES3C28P) — 542 pre-verified Chinese public MP3 streams browsable fully
 offline, province and genre filtering, on-screen Wi-Fi setup, a real-PCM FFT
 spectrum, light/dark themes on a schedule, sleep timer, and signed OTA updates.
-Built with ESP-IDF and LVGL. Flash a prebuilt image from
-[Releases](../../releases), or build it yourself — the rest of this README is in
-Chinese.
+Built with ESP-IDF and LVGL. Build it from source as described below — no
+prebuilt image is published yet. The rest of this README is in Chinese.
 
 ---
 
@@ -222,7 +221,12 @@ schedule <开始小时> <结束小时>   # 自动暗色时段，例如 22 8
 ## 系统更新
 
 发布流程、版本号与 tag 约定、发布产物去向，以及签名私钥的存放约束，全部见
-[`docs/release-process.md`](docs/release-process.md)。预编译镜像见 [Releases](../../releases)。
+[`docs/release-process.md`](docs/release-process.md)。
+
+> **本仓库尚未发布过 Release**，预编译镜像要等第一次发版才有；在那之前请从源码构建。
+> 另外注意：本仓库源码构建出的固件自报版本号 `1.1.6`，但**与 OTA 服务器上那个 1.1.6
+> 并非同一个二进制**——字库已换成 Noto Sans SC。因此自建固件的设备不会被提示更新到
+> 服务器上的 1.1.6（版本号不高于本机）。下一次正式发版会消除这个歧义。
 
 设备联网后会自动检查更新，但不会自动安装。仅当服务器版本严格高于本机时，首页才显示更新横幅；
 点击横幅或进入“设置 → 系统更新”可以查看最新版本和更新内容，再由用户启动安装。版本比较支持
