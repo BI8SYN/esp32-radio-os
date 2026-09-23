@@ -8,6 +8,7 @@
 #include "nvs.h"
 
 static station_t items[] = {{"A", "http://a", ""}, {"B", "http://b", ""}, {"C", "http://c", ""}};
+uint32_t esp_random(void) { static uint32_t r = 123; r = r * 1664525u + 1013904223u; return r; }
 static int plays, stops, checks, favorites = 0;
 static esp_err_t ota_result = ESP_OK;
 static int64_t now = 1000000;
@@ -90,6 +91,29 @@ int main(void)
     assert(s->play_source == STATION_SRC_PRESET); // 空收藏退回精选
     s->filter.region = 1; app_radio_play_station(STATION_SRC_CATALOG, 0);
     app_radio_step_station(1); assert(!strcmp(last_play.url, "http://b"));
+
+    // 随机不立即换台；不重复当前台、上一台沿历史回退、单台不重连。
+    s->filter.region = 0;
+    app_radio_play_station(STATION_SRC_PRESET, 0);
+    before = plays; app_radio_set_shuffle(true); assert(plays == before && s->shuffle);
+    for (int i = 0; i < 50; ++i) {
+        station_t previous = s->play_station;
+        app_radio_step_station(1); assert(strcmp(previous.url, last_play.url));
+        app_radio_step_station(-1); assert(!strcmp(previous.url, last_play.url));
+    }
+    before = plays; app_radio_step_station(-1); assert(plays == before);
+    for (int i = 0; i < 30; ++i) app_radio_step_station(1);
+    for (int i = 0; i < 12; ++i) app_radio_step_station(-1);
+    before = plays; app_radio_step_station(-1); assert(plays == before);
+    s->shuffle = false; preferences_load(); assert(s->shuffle); // 重启读取偏好
+    s->filter.region = 1; app_radio_play_station(STATION_SRC_CATALOG, 0);
+    s->filter.region = 0; // 浏览其他筛选不改变单台播放池
+    before = plays; app_radio_step_station(1); assert(plays == before);
+    favorites = 1; app_radio_play_station(STATION_SRC_FAV, 0);
+    before = plays; app_radio_step_station(1); assert(plays == before);
+    favorites = 0; app_radio_step_station(1);
+    assert(s->play_source == STATION_SRC_PRESET && strcmp(last_play.url, "http://a"));
+    app_radio_set_shuffle(false); assert(!s->shuffle);
 
     assert(app_radio_set_sleep(-1) == ESP_ERR_INVALID_ARG);
     assert(app_radio_set_sleep(5401) == ESP_ERR_INVALID_ARG);

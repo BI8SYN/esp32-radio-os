@@ -23,6 +23,7 @@ typedef struct {
     bool has_station;
     bool wifi_connected;
     bool autoplay;
+    bool shuffle;
     int brightness;
     bool time_24h;
     // 临时状态不写 NVS，重启后不恢复尚未到期的睡眠计时。
@@ -40,6 +41,7 @@ int app_radio_source_count(station_src_t s);
 const station_t *app_radio_source_get(station_src_t s, int i);
 void app_radio_play_station(station_src_t src, int idx);
 void app_radio_step_station(int dir);
+void app_radio_set_shuffle(bool enabled);
 
 // 左闭右开时段；相同开始/结束时刻表示全天暗色，与旧版本保持一致。
 bool app_radio_hour_is_dark(int start, int end, int hour);

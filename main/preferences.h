@@ -5,6 +5,7 @@ void preferences_load(void);
 
 #define NVS_NS     "radio"
 #define NVS_KEY_TAB "tab"
+#define NVS_KEY_SHUFFLE "shuffle"
 #define NVS_KEY_AUTO "autoplay"
 #define NVS_KEY_BRIGHT "bright"
 #define NVS_KEY_LAST "last_sta"

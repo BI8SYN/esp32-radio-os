@@ -25,3 +25,13 @@ tools/idf.sh -D RADIO_UI_TEST=OFF build
 ```
 
 普通构建不链接 `ui_probe.c`，不增加诊断任务栈，不暴露注入/截图命令。发布打包会强制关闭此选项，防止本地 CMake 缓存误带测试入口。
+
+随机换台专项（同样要求 `RADIO_UI_TEST=ON`）：
+
+```sh
+python tests/device/shuffle_ui.py --port /dev/cu.usbmodem21201 --output backup/shuffle-check
+```
+
+覆盖开关不打断播放、随机下一台/历史上一台、主题重建、12 小时制与睡眠倒计时、
+相邻 Wi-Fi 按钮、息屏唤醒隔离。专项结束保留随机开启，便于重启后检查 `uitest state`
+中的 `shuffle=1`；测试会改动主题、时间格式和电台，交付前应恢复测试前 NVS。

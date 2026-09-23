@@ -59,10 +59,14 @@ bool ui_probe_command(const char *command)
             if (lv_scr_act() == ui_page_screen(i)) active = i;
         }
         const app_radio_state_t *state = app_radio_state();
-        printf("UITEST STATE screen=%d awake=%d sleep=%d tab=%d region=%d category=%d page=%d autoplay=%d bright=%d time24=%d\n",
+        // 诊断音频线程切流有延迟；用 UI 模型地址的哈希验证选台，不输出流地址。
+        uint32_t station_id = 2166136261u;
+        for (const char *p = state->play_station.url; *p; ++p)
+            station_id = (station_id ^ (uint8_t)*p) * 16777619u;
+        printf("UITEST STATE screen=%d awake=%d sleep=%d tab=%d region=%d category=%d page=%d autoplay=%d bright=%d time24=%d shuffle=%d station_id=%lu\n",
                active, state->screen_awake, state->sleep_minutes, state->tab,
                state->filter.region, state->filter.cat, state->catalog_page,
-               state->autoplay, state->brightness, state->time_24h);
+               state->autoplay, state->brightness, state->time_24h, state->shuffle, (unsigned long)station_id);
     } else {
         int x, y, end_x, end_y;
         int parsed = sscanf(command, "touch %d %d %d %d", &x, &y, &end_x, &end_y);

@@ -33,6 +33,7 @@ static lv_obj_t *scr_player;
 static lv_obj_t *lbl_name, *lbl_meta, *lbl_state, *btn_player_play, *btn_player_fav;
 static lv_obj_t *home_update_banner, *home_update_label;
 static lv_obj_t *row_err, *lbl_wifi, *lbl_offline, *lbl_vol_low, *lbl_vol_high, *sld_vol;
+static lv_obj_t *btn_shuffle;
 static lv_obj_t *lbl_clock, *top_sleep_group, *lbl_sleep_countdown;
 static lv_obj_t *player_controls, *home_visual, *drawer_layer, *drawer_sleep_label;
 static lv_obj_t *donation_layer, *screen_wake_layer;
@@ -240,6 +241,15 @@ static void on_player_fav(lv_event_t *e)
     else stations_fav_add(&app_radio_state()->play_station);
     ui_player_refresh();
     ui_stations_refresh_list();
+}
+
+// 与 Wi-Fi 一样独立的 44px 点击区，图标本身不拦截触摸。
+static void on_shuffle(lv_event_t *e)
+{
+    (void)e;
+    app_radio_set_shuffle(!app_radio_state()->shuffle);
+    if (app_radio_state()->shuffle) lv_obj_add_state(btn_shuffle, LV_STATE_CHECKED);
+    else lv_obj_clear_state(btn_shuffle, LV_STATE_CHECKED);
 }
 
 static void on_prev(lv_event_t *e) { (void)e; app_radio_step_station(-1); ui_player_refresh(); }
@@ -575,21 +585,36 @@ void ui_player_build(void)
     lv_obj_set_size(menu, 44, 36);
     lv_obj_set_pos(menu, 6, 2);
     lv_obj_set_style_bg_opa(menu, LV_OPA_TRANSP, 0);
-    lv_obj_t *top_center = ui_widgets_mk_box(top, 210, 36);
-    lv_obj_set_pos(top_center, 55, 2);
-    lv_obj_set_flex_flow(top_center, LV_FLEX_FLOW_ROW);
+    lv_obj_t *top_center = ui_widgets_mk_box(top, 176, 36);
+    lv_obj_set_pos(top_center, 50, 2);
+    lv_obj_set_flex_flow(top_center, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(top_center, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_column(top_center, 7, 0);
+    lv_obj_set_style_pad_row(top_center, 0, 0);
     lbl_clock = ui_widgets_mk_label(top_center, "--:--", &font_cjk_14, C_INK2);
-    top_sleep_group = ui_widgets_mk_box(top_center, 68, 18);
+    top_sleep_group = ui_widgets_mk_box(top_center, 68, 16);
     lv_obj_set_flex_flow(top_sleep_group, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(top_sleep_group, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER,
                           LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(top_sleep_group, 4, 0);
     ui_widgets_build_small_icon(top_sleep_group, SMALL_ICON_TIMER);
-    lbl_sleep_countdown = ui_widgets_mk_label(top_sleep_group, "15:00", &lv_font_montserrat_14, C_ACCENT);
+    lbl_sleep_countdown = ui_widgets_mk_label(top_sleep_group, "15:00", &lv_font_montserrat_12, C_ACCENT);
     lv_obj_add_flag(top_sleep_group, LV_OBJ_FLAG_HIDDEN);
+    btn_shuffle = ui_widgets_mk_btn(top, LV_SYMBOL_SHUFFLE, &lv_font_montserrat_20,
+                                     false, on_shuffle, NULL);
+    lv_obj_set_size(btn_shuffle, 44, 36);
+    lv_obj_set_pos(btn_shuffle, 226, 2);
+    lv_obj_set_style_radius(btn_shuffle, 10, 0);
+    lv_obj_set_style_bg_opa(btn_shuffle, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_text_color(btn_shuffle, C_INK2, 0);
+    lv_obj_set_style_bg_opa(btn_shuffle, LV_OPA_COVER, LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(btn_shuffle, C_TINT, LV_STATE_CHECKED);
+    lv_obj_t *shuffle_icon = lv_obj_get_child(btn_shuffle, 0);
+    lv_obj_set_style_text_color(shuffle_icon, C_INK2, 0);
+    // 子标签颜色显式跟随父按钮的选中态。
+    lv_obj_set_style_text_color(btn_shuffle, C_ACCENT, LV_STATE_CHECKED);
+    lv_obj_remove_local_style_prop(shuffle_icon, LV_STYLE_TEXT_COLOR, 0);
+    if (app_radio_state()->shuffle) lv_obj_add_state(btn_shuffle, LV_STATE_CHECKED);
     lv_obj_t *wifi_btn = ui_widgets_mk_btn(top, LV_SYMBOL_WIFI, &lv_font_montserrat_20, false,
                                 ui_wifi_on_wifi_open, NULL);
     lv_obj_set_size(wifi_btn, 44, 36);
@@ -786,6 +811,7 @@ void ui_player_destroy(void)
     lbl_vol_low = NULL;
     lbl_vol_high = NULL;
     sld_vol = NULL;
+    btn_shuffle = NULL;
     lbl_clock = NULL;
     top_sleep_group = NULL;
     lbl_sleep_countdown = NULL;

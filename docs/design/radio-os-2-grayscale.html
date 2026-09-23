@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-  <title>Radio OS 1.1.6 · 320×240 视觉原型</title>
+  <title>Radio OS · 1.1.8 随机换台交互提案</title>
   <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; font-family: system-ui, -apple-system, "PingFang SC", sans-serif; color: #111; background: #ddd; }
@@ -262,14 +262,32 @@
     .proto-panel { border: 0; background: var(--bg); box-shadow: 0 4px 12px rgba(23, 23, 28, .08); }
     .proto-panel p { color: var(--muted); }
     .proto-actions button { border: 0; border-radius: 8px; color: var(--ink); background: var(--surface); }
+    /* 三个独立 44px 点击区；时间与倒计时上下排列，兼容 12 小时制。 */
+    .home-tools { grid-template-columns: 44px 1fr 44px 44px; flex: 0 0 40px; }
+    .home-time-group { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; }
+    .sleep-countdown { color: var(--accent); font-size: 10px; line-height: 12px; white-space: nowrap; }
+    .sleep-countdown[hidden] { display: none; }
+    .home-tools .shuffle-entry { width: 44px; padding: 0; border-radius: 10px; }
+    .shuffle-entry svg { width: 20px; height: 20px; display: block; margin: auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .home-tools .shuffle-entry[aria-pressed="true"] { color: var(--accent); background: var(--accent-soft); }
+    .drawer-quick { height: 60px; flex: 0 0 60px; padding: 8px 6px; display: flex; gap: 4px; }
+    .drawer-quick button { width: 99px; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 10px; background: var(--surface); display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 14px; white-space: nowrap; }
+    .drawer-quick svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+    .drawer-item { flex: 0 0 45px; }
+    .drawer-note { flex: 0 0 32px; }
+    .screen-off-layer { position: absolute; inset: 0; z-index: 50; width: 100%; height: 100%; background: #000; border: 0; }
+    .screen-off-layer[hidden] { display: none; }
+    .screen-off-layer:active { background: #000; }
   </style>
 </head>
 <body>
   <main class="device" aria-label="320×240 网络收音机原型">
+    <button id="screen-wake" class="screen-off-layer" aria-label="唤醒屏幕" hidden></button>
     <section id="home" class="screen active">
       <div class="home-tools">
         <button id="open-drawer" aria-label="打开菜单">☰</button>
-        <time class="home-clock" id="home-clock" aria-label="当前时间">09:41</time>
+        <div class="home-time-group"><time class="home-clock" id="home-clock" aria-label="当前时间">09:41</time><span id="sleep-countdown" class="sleep-countdown" hidden></span></div>
+        <button id="shuffle" class="shuffle-entry" aria-label="随机换台" aria-pressed="false" title="随机换台：关闭"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h3c4 0 8 12 12 12h3M17 14l4 4-4 4M3 18h3c1.7 0 3.5-2.3 5-5M13 9c1.8-2 3.2-3 5-3h3M17 2l4 4-4 4"/></svg></button>
         <button class="wifi-entry" data-go="wifi" aria-label="Wi-Fi">🛜</button>
       </div>
       <div class="home-title">
@@ -284,7 +302,7 @@
         </span>
       </div>
       <div class="home-state" id="home-state">正在播放</div>
-      <button class="update-banner" id="update-banner" data-go="ota">发现新版本 1.1.7　›</button>
+      <button class="update-banner" id="update-banner" data-go="ota">发现新版本 1.1.8　›</button>
       <div class="message-actions" id="home-actions"><button id="retry">重试</button><button id="skip">下一台</button></div>
       <div class="controls" id="home-controls">
         <button data-go="library" aria-label="电台库"><svg class="control-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="6" x2="17" y2="6"/><line x1="4" y1="12" x2="21" y2="12"/><line x1="4" y1="18" x2="14" y2="18"/></svg></button>
@@ -337,7 +355,7 @@
         <label class="setting-row"><span>联网后自动续播</span><span class="toggle"><input id="autoplay" type="checkbox" checked aria-label="联网后自动续播"><span class="toggle-track"><span class="toggle-thumb"></span></span></span></label>
         <div class="setting-row time-setting"><span>时间格式</span><span class="time-format-switch" role="group" aria-label="时间格式"><button class="selected" data-time-format="24" aria-pressed="true">24 小时</button><button data-time-format="12" aria-pressed="false">12 小时</button></span></div>
         <label class="setting-row"><span>屏幕亮度</span><input type="range" min="10" max="100" value="85"></label>
-        <button class="setting-row" data-go="ota"><span>系统更新</span><small>1.1.6　›</small></button>
+        <button class="setting-row" data-go="ota"><span>系统更新</span><small>1.1.7　›</small></button>
         <button class="setting-row" data-go="diagnostics"><span>诊断</span><small>›</small></button>
         <button class="setting-row" data-go="about"><span>关于</span><small>›</small></button>
       </div>
@@ -371,7 +389,7 @@
         </div>
         <div class="about-card">
           <div class="about-stats">
-            <div class="about-stat"><span>当前版本</span><strong>1.1.6</strong></div>
+            <div class="about-stat"><span>当前版本</span><strong>1.1.7</strong></div>
             <div class="about-stat"><span>本机电台</span><strong>542</strong></div>
           </div>
           <div class="about-author"><span>设计与开发</span><strong>BI8SYN</strong></div>
@@ -408,10 +426,13 @@
       <nav class="drawer" aria-label="主菜单">
         <div class="drawer-head"><strong>Radio OS <small>by BI8SYN</small></strong><button id="close-drawer" aria-label="关闭菜单">×</button></div>
         <div class="drawer-content">
-          <button class="drawer-item" id="drawer-sleep"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span>睡眠定时</span><small>关闭　›</small></button>
+          <div class="drawer-quick">
+            <button id="screen-off"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8"/></svg><span>息屏播放</span></button>
+            <button id="drawer-sleep"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><span>睡眠关闭</span></button>
+          </div>
           <button class="drawer-item" data-go="settings"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h3M11 12h9M4 18h8M16 18h4"/><circle cx="16" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="14" cy="18" r="2"/></svg><span>设置</span><small>›</small></button>
           <button class="drawer-item" id="drawer-donation"><svg class="menu-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h12v7a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M4 21h15"/></svg><span>请我喝杯咖啡</span><small>›</small></button>
-          <div class="drawer-note">Radio OS 1.1.6</div>
+          <div class="drawer-note">Radio OS 1.1.7</div>
         </div>
       </nav>
       <button id="drawer-scrim" class="drawer-scrim" aria-label="关闭菜单"></button>
@@ -434,6 +455,7 @@
       <button data-demo="wifi-empty">Wi-Fi 为空</button><button data-demo="wifi-error">Wi-Fi 错误</button><button data-demo="first-boot">首次启动</button>
       <button data-go="ota">在线更新页</button><button data-demo="update">发现新版本</button>
     </div>
+    <p>交互提案：顶部 Wi-Fi 左侧是随机开关，灰色为关闭、紫色底为开启。开启不打断当前台，下一台随机、上一台返回历史。菜单已同步息屏播放与睡眠快捷键；设置可切换 12 小时制检查倒计时排版。仅原型演示，固件尚未实现随机功能。</p>
     <p>此面板只用于设计验收，不属于设备界面。原型使用模拟数据，固件版能量条接入真实 PCM 频谱，并以整体音量稳定中央视觉锚点。</p>
   </aside>
 
@@ -449,7 +471,7 @@
       { name: "北京音乐广播", region: "北京", category: "音乐", featured: false }
     ];
     const regions = ["全部", "全国", "北京", "天津", "河北", "山西", "内蒙古", "辽宁", "吉林", "黑龙江", "上海", "江苏", "浙江", "安徽", "福建", "江西", "山东", "河南", "湖北", "湖南", "广东", "广西", "海南", "重庆", "四川", "贵州", "云南", "陕西", "甘肃", "青海", "宁夏", "新疆", "香港"];
-    const state = { screen: "home", station: stations[0], playing: true, favorite: false, tab: "featured", region: "全部", category: "全部", demo: "normal", timeFormat: "24", ota: "idle" };
+    const state = { shuffle: false, history: [], playPool: stations.filter(s => s.featured), screen: "home", station: stations[0], playing: true, favorite: false, tab: "featured", region: "全部", category: "全部", demo: "normal", timeFormat: "24", ota: "idle" };
     const $ = (selector, root = document) => root.querySelector(selector);
     const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 
@@ -569,7 +591,8 @@
       $("#donation-layer").setAttribute("aria-hidden", "true");
     }
 
-    function setStation(station) {
+    function setStation(station, remember = true) {
+      if (remember && station !== state.station) state.history.push(state.station);
       state.station = station;
       $("#home-name").textContent = station.name;
       $("#home-meta").textContent = `${station.region} · ${station.category}`;
@@ -608,7 +631,7 @@
         return;
       }
       host.innerHTML = list.map((s, index) => `<button class="station-row" data-station="${stations.indexOf(s)}"><span>${s === state.station && state.playing ? "▶" : ""}</span><span class="name">${s.name}</span><span class="meta">${s.region} · ${s.category}</span><span class="fav">${s === state.station && state.favorite ? "♥" : "♡"}</span></button>`).join("");
-      $$(".station-row", host).forEach(row => row.onclick = () => setStation(stations[Number(row.dataset.station)]));
+      $$(".station-row", host).forEach(row => row.onclick = () => { state.playPool = list.slice(); state.history = []; setStation(stations[Number(row.dataset.station)], false); });
     }
 
     function syncTabs() {
@@ -650,8 +673,8 @@
       const host = $("#ota-body");
       const checking = mode === "checking", current = mode === "current", available = mode === "available";
       const title = checking ? "正在检查更新" : current ? "已是最新版本" : available ? "发现新版本" : "在线更新";
-      const version = available ? "当前 1.1.6　·　最新 1.1.7" : "当前版本　1.1.6";
-      const copy = checking ? "正在安全连接更新服务…" : current ? "当前已是最新版本" : available ? "Radio OS 1.1.7 已准备好" : "通过 Wi-Fi 安全下载并校验新固件";
+      const version = available ? "当前 1.1.7　·　最新 1.1.8" : "当前版本　1.1.7";
+      const copy = checking ? "正在安全连接更新服务…" : current ? "当前已是最新版本" : available ? "Radio OS 1.1.8 已准备好" : "通过 Wi-Fi 安全下载并校验新固件";
       const notes = available ? '<div class="ota-notes"><strong>更新内容</strong>修复收藏图标导致的界面卡死<br>新增界面响应自检<br>修正固件版本构建缓存</div>' : "";
       host.innerHTML = `<div class="ota-hero"><span class="ota-icon-box"><svg class="ota-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="ota-heading"><strong>${title}</strong><small class="ota-version-top">${version}</small></span></div><p>${copy}</p>${notes}${checking ? "" : `<button id="ota-check">${available ? "立即更新" : "检查更新"}</button>`}`;
       if ($("#ota-check")) $("#ota-check").onclick = () => {
@@ -720,8 +743,30 @@
     $("#play").onclick = () => { state.playing = !state.playing; applyHomeState(); };
     $("#home-fav").onclick = () => { state.favorite = !state.favorite; applyHomeState(); };
     $("#retry").onclick = () => { state.demo = "loading"; applyHomeState(); window.setTimeout(() => { state.demo = "normal"; applyHomeState(); }, 650); };
-    $("#skip").onclick = () => setStation(stations[1]);
-    $("#prev").onclick = $("#next").onclick = () => setStation(stations[(stations.indexOf(state.station) + 1) % stations.length]);
+    // 来源随选台确定，浏览其他列表不会偷偷改变随机范围。
+    function stepStation(direction) {
+      if (state.shuffle && direction < 0) {
+        const previous = state.history.pop();
+        if (previous) setStation(previous, false);
+        return;
+      }
+      const pool = state.playPool;
+      if (pool.length < 2) return;
+      if (state.shuffle) {
+        const choices = pool.filter(s => s !== state.station);
+        setStation(choices[Math.floor(Math.random() * choices.length)]);
+      } else {
+        const index = pool.indexOf(state.station);
+        setStation(pool[(index + direction + pool.length) % pool.length]);
+      }
+    }
+    $("#shuffle").onclick = () => {
+      state.shuffle = !state.shuffle;
+      $("#shuffle").setAttribute("aria-pressed", String(state.shuffle));
+      $("#shuffle").title = `随机换台：${state.shuffle ? "开启" : "关闭"}`;
+    };
+    $("#skip").onclick = $("#next").onclick = () => stepStation(1);
+    $("#prev").onclick = () => stepStation(-1);
     $("#search").oninput = () => renderStations();
     $$('[data-tab]').forEach(b => b.onclick = () => { state.tab = b.dataset.tab; syncTabs(); renderStations(); });
     $$('[data-region]').forEach(b => b.onclick = () => selectChip("region", b.dataset.region));
@@ -735,12 +780,25 @@
       $("#autoplay").checked = enabled;
     }
     $("#autoplay").onchange = e => setAutoplay(e.currentTarget.checked);
-    const sleepValues = ["关闭", "15 分钟", "30 分钟", "60 分钟", "90 分钟"]; let sleepIndex = 0;
-    function cycleSleep() {
-      sleepIndex = (sleepIndex + 1) % sleepValues.length;
-      $("#drawer-sleep small").textContent = sleepValues[sleepIndex] + "　›";
+    const sleepValues = [0, 15, 30, 60, 90]; let sleepIndex = 0, sleepDeadline = 0;
+    function updateSleep() {
+      const remaining = Math.max(0, Math.ceil((sleepDeadline - Date.now()) / 1000));
+      if (sleepDeadline && !remaining) {
+        sleepDeadline = 0; sleepIndex = 0; state.playing = false; applyHomeState();
+      }
+      $("#drawer-sleep span").textContent = sleepIndex ? `${sleepValues[sleepIndex]}分钟` : "睡眠关闭";
+      $("#sleep-countdown").hidden = !sleepDeadline;
+      $("#sleep-countdown").textContent = `◷ ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
     }
-    $("#drawer-sleep").onclick = cycleSleep;
+    $("#drawer-sleep").onclick = () => {
+      sleepIndex = (sleepIndex + 1) % sleepValues.length;
+      sleepDeadline = sleepIndex ? Date.now() + sleepValues[sleepIndex] * 60000 : 0;
+      updateSleep();
+    };
+    window.setInterval(updateSleep, 1000);
+    // 唤醒只消除黑色遮罩，不把同一次点击交给底下的播放控件。
+    $("#screen-off").onclick = () => { closeDrawer(); $("#screen-wake").hidden = false; };
+    $("#screen-wake").onclick = event => { event.stopPropagation(); event.currentTarget.hidden = true; };
     $("#rescan").onclick = scanWifi;
     $("#wifi-form").onsubmit = e => {
       e.preventDefault();

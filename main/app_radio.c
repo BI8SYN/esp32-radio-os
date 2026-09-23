@@ -2,9 +2,8 @@
 #include "preferences.h"
 #include "player.h"
 #include "esp_timer.h"
+#include "esp_random.h"
 #include <string.h>
-
-static int src_index_of(station_src_t s, const char *url);
 
 int app_radio_source_count(station_src_t s)
 {
@@ -24,40 +23,88 @@ const station_t *app_radio_source_get(station_src_t s, int i)
     }
 }
 
-static int src_index_of(station_src_t s, const char *url)
+// 历史只属于当前播放会话，不写入闪存。保存台的副本，收藏删除或列表刷新
+// 不会使“上一台”引用失效；固定容量避免长时间收听时内存持续增长。
+#define HISTORY_CAPACITY 12
+static station_t s_history[HISTORY_CAPACITY];
+static unsigned s_history_count;
+static station_filter_t s_play_filter;
+
+static void play_selected(const station_t *station)
 {
-    int n = app_radio_source_count(s);
-    for (int i = 0; i < n; i++) {
-        const station_t *st = app_radio_source_get(s, i);
-        if (st && strcmp(st->url, url) == 0) return i;
-    }
-    return -1;
+    app_radio_state()->play_station = *station;
+    app_radio_state()->has_station = true;
+    preferences_save_last_station();
+    player_play(&app_radio_state()->play_station);
 }
 
 void app_radio_play_station(station_src_t src, int idx)
 {
     const station_t *st = app_radio_source_get(src, idx);
     if (!st) return;
-    app_radio_state()->play_station = *st;
+    s_history_count = 0;
+    s_play_filter = app_radio_state()->filter;
     app_radio_state()->play_source = src;
-    app_radio_state()->has_station = true;
-    preferences_save_last_station();
-    player_play(&app_radio_state()->play_station);
+    play_selected(st);
+}
+
+void app_radio_set_shuffle(bool enabled)
+{
+    if (app_radio_state()->shuffle == enabled) return;
+    app_radio_state()->shuffle = enabled;
+    s_history_count = 0;
+    preferences_save_i32(NVS_KEY_SHUFFLE, enabled);
+}
+
+// 随机范围以选台时的筛选为准，浏览/筛选别的列表不会悄悄改变播放来源。
+static const station_t *play_pool_get(int i)
+{
+    if (app_radio_state()->play_source == STATION_SRC_CATALOG)
+        return stations_catalog_filtered_get(&s_play_filter, i, NULL);
+    return app_radio_source_get(app_radio_state()->play_source, i);
 }
 
 void app_radio_step_station(int dir)
 {
-    if (!app_radio_state()->has_station) return;
-    int n = app_radio_source_count(app_radio_state()->play_source);
+    app_radio_state_t *s = app_radio_state();
+    if (!s->has_station) return;
+    if (s->shuffle && dir < 0) {
+        if (s_history_count) play_selected(&s_history[--s_history_count]);
+        return;
+    }
+    int n = s->play_source == STATION_SRC_CATALOG
+        ? stations_catalog_filtered_count(&s_play_filter) : app_radio_source_count(s->play_source);
     if (n <= 0) {
-        app_radio_state()->play_source = STATION_SRC_PRESET;
-        n = app_radio_source_count(app_radio_state()->play_source);
+        s->play_source = STATION_SRC_PRESET;
+        s_history_count = 0;
+        n = stations_preset_count();
         if (n <= 0) return;
     }
-    int cur = src_index_of(app_radio_state()->play_source, app_radio_state()->play_station.url);
-    if (cur < 0) cur = 0;
-    int next = ((cur + dir) % n + n) % n;
-    app_radio_play_station(app_radio_state()->play_source, next);
+    int cur = -1;
+    for (int i = 0; i < n; ++i) {
+        const station_t *st = play_pool_get(i);
+        if (st && !strcmp(st->url, s->play_station.url)) { cur = i; break; }
+    }
+    const station_t *next = NULL;
+    if (s->shuffle) {
+        // 蓄水池抽样：不分配候选数组，跳过同一流地址（包括重复条目）。
+        unsigned candidates = 0;
+        for (int i = 0; i < n; ++i) {
+            const station_t *st = play_pool_get(i);
+            if (!st || !strcmp(st->url, s->play_station.url)) continue;
+            if (esp_random() % ++candidates == 0) next = st;
+        }
+        if (!next) return; // 只有当前台时不重连、不打断播放。
+        if (s_history_count == HISTORY_CAPACITY) {
+            memmove(s_history, s_history + 1, sizeof(s_history[0]) * (HISTORY_CAPACITY - 1));
+            --s_history_count;
+        }
+        s_history[s_history_count++] = s->play_station;
+    } else {
+        int index = cur < 0 ? (dir < 0 ? n - 1 : 0) : ((cur + dir) % n + n) % n;
+        next = play_pool_get(index);
+    }
+    if (next) play_selected(next);
 }
 
 static app_radio_state_t s_state = {

@@ -43,6 +43,7 @@ void preferences_load(void)
             app_radio_state()->tab = (station_src_t)t;
         }
         int32_t value;
+        if (nvs_get_i32(h, NVS_KEY_SHUFFLE, &value) == ESP_OK) app_radio_state()->shuffle = value == 1;
         if (nvs_get_i32(h, NVS_KEY_AUTO, &value) == ESP_OK) app_radio_state()->autoplay = value != 0;
         if (nvs_get_i32(h, NVS_KEY_BRIGHT, &value) == ESP_OK && value >= 10 && value <= 100) {
             app_radio_state()->brightness = value;
