@@ -1,7 +1,7 @@
 {
-  "version": "1.1.7",
-  "url": "http://8.138.130.141/radio-os/radio-os-1.1.7.bin",
-  "sha256": "090382f53bd8b3c6cdf4fc57e74e48ca007287eb7ce0230113e53e90319ba583",
-  "notes": "修复调音量时误触播放与换台按钮\n中文字库改用开源 Noto Sans SC，字形略有变化\n底部控件间距与触控范围重新调整",
-  "signature": "MEUCIFc0eLnHAs+45owCZchUzh0etLPEUA5exMjX7q6MBAF2AiEApDZflsDvCMBT463rqUFIAKYZKdkAzeMQqblygS7zZgI="
+  "version": "1.1.8",
+  "url": "http://8.138.130.141/radio-os/radio-os-1.1.8.bin",
+  "sha256": "1b02490c94bbf82c6cd51559b22d67ae199f0bcd0e5dda5b63c7ee080e13ea93",
+  "notes": "新增状态栏随机换台，重启记住选择\n随机下一台，上一台返回历史\n优化时钟与睡眠倒计时，整理界面代码\n修复主题色与触摸测试点击响应",
+  "signature": "MEUCIQDjhtz/c1w4jDYu9slJ8TWiaeZmuhCs0ESWkZtSCPNI7wIgF57Fk/pAsybpdAZtvR9zcbcOpIzJLHDH1b9VdwetbqU="
 }
