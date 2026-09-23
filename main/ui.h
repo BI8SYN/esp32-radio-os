@@ -22,6 +22,9 @@ typedef enum {
     UI_SCREEN_OTA,
     UI_SCREEN_DIAGNOSTICS,
     UI_SCREEN_TOUCH_TEST,
+    // 以下仅用于内部页面识别，ui_show_screen() 不接受直接跳转。
+    UI_SCREEN_SETUP,
+    UI_SCREEN_BOOT,
 } ui_screen_t;
 
 // 物理 USB 串口诊断使用；也让产测可以不依赖触摸完成完整操作。

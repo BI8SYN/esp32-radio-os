@@ -114,10 +114,14 @@ bootloader、分区表、OTA 数据和 app；之后由设备主动访问签名�
 | `main/station_catalog.inc` | 由工具生成的静态电台目录 |
 | `main/player.c` | 播放：PSRAM 环形缓冲、HTTP 拉流任务、MP3 解码任务 |
 | `main/wifi_mgr.c` | Wi-Fi：凭据存取、本机扫描连接、配网热点 + 备用网页 |
-| `main/ui.c` | LVGL 产品界面：播放 / 列表 / 筛选 / 设置 / 本机配网 |
+| `main/ui.c` | 界面协调：导航、主题重建、后台通知转交 UI 任务 |
+| `main/ui/` | 各页面、主题、公共控件、频谱及启动动画；各模块管理自己的控件 |
+| `main/app_radio.c` / `main/preferences.c` | 应用状态、续播/睡眠策略、偏好存储与兼容读取 |
 | `main/diagnostics.c` | USB 串口自检、状态读取与无触摸自动验收控制 |
 | `main/ota_mgr.c` | 签名清单、语义版本比较、下载进度、镜像校验、双分区切换与首启确认 |
 | `main/fonts/` | 自建 CJK 字库（14/18/24px），由 `lv_font_conv` 生成 |
+
+页面生命周期、任务边界与新增页面方法见 [`docs/architecture.md`](docs/architecture.md)。
 
 ## 仓库结构
 

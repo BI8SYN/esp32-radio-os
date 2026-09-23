@@ -32,7 +32,8 @@ fi
 
 RELEASE_DIR="$ROOT/dist/radio-os-$VERSION"
 mkdir -p "$RELEASE_DIR"
-"$ROOT/tools/idf.sh" build
+# 不能继承开发回归时的 CMake 缓存；发布镜像不得带触摸注入/截图探针。
+"$ROOT/tools/idf.sh" -D RADIO_UI_TEST=OFF build
 cp "$ROOT/build/radio.bin" "$RELEASE_DIR/radio-os-$VERSION-ota.bin"
 "$ROOT/tools/idf.sh" merge-bin -f raw -o "$RELEASE_DIR/radio-os-$VERSION-0x0.bin"
 

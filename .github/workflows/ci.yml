@@ -12,6 +12,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  host-tests:
+    name: 应用逻辑与设置兼容性
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: tests/host/run.sh
+
   build:
     name: 固件构建
     runs-on: ubuntu-latest

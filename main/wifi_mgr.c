@@ -14,7 +14,13 @@
 #include "freertos/task.h"
 #include "freertos/timers.h"
 #include "nvs.h"
-#include "ui.h"
+
+static wifi_mgr_callback_t s_callback;
+void wifi_mgr_set_callback(wifi_mgr_callback_t callback) { s_callback = callback; }
+static void notify(wifi_mgr_event_t event, const char *ssid)
+{
+    if (s_callback) s_callback(event, ssid);
+}
 
 static const char *TAG = "wifi";
 
@@ -298,7 +304,7 @@ static esp_err_t save_post(httpd_req_t *req)
         "<h2>已保存</h2><p>设备正在连接，请看屏幕。<br>"
         "连上后这个热点会自动关闭；若屏幕提示失败，重新连回热点再试一次。</p>");
 
-    ui_show_setup_connecting(ssid);
+    notify(WIFI_MGR_CONNECTING, ssid);
 
     wifi_config_t cfg = { 0 };
     strlcpy((char *)cfg.sta.ssid, ssid, sizeof(cfg.sta.ssid));
@@ -330,7 +336,7 @@ static void portal_start_httpd(void)
 static void enter_setup_mode(void)
 {
     if (s_portal_up) {
-        ui_show_setup(WIFI_SETUP_AP_SSID, WIFI_SETUP_IP, s_saved_ssid[0] ? s_saved_ssid : NULL);
+        notify(WIFI_MGR_SETUP, s_saved_ssid[0] ? s_saved_ssid : NULL);
         return;
     }
 
@@ -352,7 +358,7 @@ static void enter_setup_mode(void)
     s_portal_up = true;
 
     ESP_LOGI(TAG, "配网模式：热点 %s，网页 http://%s", WIFI_SETUP_AP_SSID, WIFI_SETUP_IP);
-    ui_show_setup(WIFI_SETUP_AP_SSID, WIFI_SETUP_IP, s_saved_ssid[0] ? s_saved_ssid : NULL);
+    notify(WIFI_MGR_SETUP, s_saved_ssid[0] ? s_saved_ssid : NULL);
 }
 
 static void exit_setup_mode(void)
@@ -362,7 +368,7 @@ static void exit_setup_mode(void)
     esp_wifi_set_mode(WIFI_MODE_STA);
     s_portal_up = false;
     ESP_LOGI(TAG, "已连上，关闭配网热点");
-    ui_hide_setup();
+    notify(WIFI_MGR_SETUP_CLOSED, NULL);
 }
 
 static void reconnect_timer_cb(TimerHandle_t timer)
@@ -389,13 +395,12 @@ static void on_wifi_event(void *arg, esp_event_base_t base, int32_t id, void *da
 
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_DISCONNECTED) {
         s_connected = false;
-        ui_set_wifi_connected(false);
+        notify(WIFI_MGR_DISCONNECTED, NULL);
 
         // 配网热点已经开着的时候不再自动重连：STA 重连会让 AP 跟着跳信道，
         // 正在填密码的手机会被踢下线。
         if (s_portal_up) {
-            ui_show_setup(WIFI_SETUP_AP_SSID, WIFI_SETUP_IP,
-                          s_saved_ssid[0] ? s_saved_ssid : NULL);
+            notify(WIFI_MGR_SETUP, s_saved_ssid[0] ? s_saved_ssid : NULL);
             return;
         }
 
@@ -416,7 +421,7 @@ static void on_wifi_event(void *arg, esp_event_base_t base, int32_t id, void *da
         s_retry = 0;
         s_connected = true;
         xTimerStop(s_reconnect_timer, 0);
-        ui_set_wifi_connected(true);
+        notify(WIFI_MGR_CONNECTED, NULL);
         exit_setup_mode();
     }
 }

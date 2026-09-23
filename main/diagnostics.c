@@ -1,4 +1,7 @@
 #include "diagnostics.h"
+#ifdef RADIO_UI_TEST
+#include "ui_probe.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,6 +115,9 @@ static int number_or(const char *text, int fallback)
 
 static void handle_line(char *line)
 {
+#ifdef RADIO_UI_TEST
+    if (ui_probe_command(line)) return;
+#endif
     char *save = NULL;
     char *cmd = strtok_r(line, " \t\r\n", &save);
     if (!cmd) return;
@@ -311,6 +317,12 @@ esp_err_t diagnostics_init(void)
     esp_err_t err = usb_serial_jtag_driver_install(&config);
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) return err;
     usb_serial_jtag_vfs_use_driver();
-    return xTaskCreate(diagnostics_task, "diag", 4096, NULL, 2, NULL) == pdPASS
+#ifdef RADIO_UI_TEST
+    // 截图会在诊断任务里运行 LVGL 绘制递归，仅测试构建需要额外栈空间。
+    const uint32_t stack_size = 12288;
+#else
+    const uint32_t stack_size = 4096;
+#endif
+    return xTaskCreate(diagnostics_task, "diag", stack_size, NULL, 2, NULL) == pdPASS
            ? ESP_OK : ESP_ERR_NO_MEM;
 }

@@ -20,6 +20,15 @@ typedef struct {
     bool secured;
 } wifi_mgr_ap_t;
 
+// 订阅者在初始化前注册。回调可能来自网络/网页任务，只传递状态，不执行页面操作。
+// ssid 仅在回调期间有效，接收者如需异步使用必须复制；事件永远不携带密码。
+typedef enum {
+    WIFI_MGR_CONNECTED, WIFI_MGR_DISCONNECTED, WIFI_MGR_SETUP,
+    WIFI_MGR_CONNECTING, WIFI_MGR_SETUP_CLOSED,
+} wifi_mgr_event_t;
+typedef void (*wifi_mgr_callback_t)(wifi_mgr_event_t event, const char *ssid);
+void wifi_mgr_set_callback(wifi_mgr_callback_t callback);
+
 esp_err_t wifi_mgr_init(void);
 bool wifi_mgr_is_connected(void);
 int wifi_mgr_rssi(void);  // 未连接时返回 -127 dBm
