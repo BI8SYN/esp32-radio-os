@@ -16,6 +16,12 @@ Radio 1–5 与普通话台。目录编译进 Flash，浏览、分页与筛选�
 但开发板不经过 Surge，香港 MP3 入口直连出现 TCP 连接超时；
 因此电脑端检查不能视为设备所在网络可播放的验收。
 
+## 后续排查与开发版修复
+
+`1.1.10-dev` 使用同服务的 `d1czl0fq6dkkol.cloudfront.net` CDN 别名，
+避开设备 DNS 对 `stm.rthk.hk` 返回的不可用地址；未新增 HLS/AAC 支持。
+完整实机证据、修复范围和回归方法见 [播放失败排查](rthk-playback-investigation.md)。
+
 ## 验证口径
 
 1. 从公开社区列表收集 808 个不重复的蜻蜓频道 ID，仅作为候选集合。

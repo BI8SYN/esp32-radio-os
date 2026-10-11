@@ -35,3 +35,12 @@ python tests/device/shuffle_ui.py --port /dev/cu.usbmodem21201 --output backup/s
 覆盖开关不打断播放、随机下一台/历史上一台、主题重建、12 小时制与睡眠倒计时、
 相邻 Wi-Fi 按钮、息屏唤醒隔离。专项结束保留随机开启，便于重启后检查 `uitest state`
 中的 `shuffle=1`；测试会改动主题、时间格式和电台，交付前应恢复测试前 NVS。
+
+香港电台播放回归（普通固件即可，无需 UI 探针）：
+
+```sh
+python tests/device/rthk_playback.py --port /dev/cu.usbmodemXXXXX --output backup/rthk-playback
+```
+
+逐台验证第 1–5 台和普通话台的实际解码及连续下载状态，并执行自检；保留音量与收藏，
+最后停留在普通话台。单台复现可加 `--indices 537`。

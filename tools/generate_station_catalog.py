@@ -171,13 +171,15 @@ def main() -> None:
             "    { { %s, %s, %s }, STATION_REGION_%s, STATION_CAT_%s, %d }, /* %s */"
             % (c_string(name, 64), c_string(stream, 192), c_string(meta, 48), region, category, featured, station_id)
         )
+    # 公开 DNS 查询中 stm.rthk.hk 的 CNAME 指向此 CDN 别名；使用别名避开已实测的错误 DNS 地址。
+    # 不固化 CDN IP，边缘节点仍由 DNS 选择；仅替换同一服务域名，频道路径保持不变。
     lines.extend([
-        '    { { "香港电台第1台", "http://stm.rthk.hk/radio1", "香港 · 新闻" }, STATION_REGION_HONG_KONG, STATION_CAT_NEWS, 1 },',
-        '    { { "香港电台第2台", "http://stm.rthk.hk/radio2", "香港 · 综合" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 1 },',
-        '    { { "香港电台第3台AM567", "http://stm.rthk.hk/radio3", "香港 · 英语" }, STATION_REGION_HONG_KONG, STATION_CAT_DIALECT, 0 },',
-        '    { { "香港电台第4台FM97.6/FM98.9", "http://stm.rthk.hk/radio4", "香港 · 音乐" }, STATION_REGION_HONG_KONG, STATION_CAT_MUSIC, 0 },',
-        '    { { "香港电台第5台AM783", "http://stm.rthk.hk/radio5", "香港 · 文艺" }, STATION_REGION_HONG_KONG, STATION_CAT_CULTURE, 0 },',
-        '    { { "香港电台普通话台AM621/FM100.9", "http://stm.rthk.hk/radiopth", "香港 · 普通话" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 0 },'
+        '    { { "香港电台第1台", "http://d1czl0fq6dkkol.cloudfront.net/radio1", "香港 · 新闻" }, STATION_REGION_HONG_KONG, STATION_CAT_NEWS, 1 },',
+        '    { { "香港电台第2台", "http://d1czl0fq6dkkol.cloudfront.net/radio2", "香港 · 综合" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 1 },',
+        '    { { "香港电台第3台AM567", "http://d1czl0fq6dkkol.cloudfront.net/radio3", "香港 · 英语" }, STATION_REGION_HONG_KONG, STATION_CAT_DIALECT, 0 },',
+        '    { { "香港电台第4台FM97.6/FM98.9", "http://d1czl0fq6dkkol.cloudfront.net/radio4", "香港 · 音乐" }, STATION_REGION_HONG_KONG, STATION_CAT_MUSIC, 0 },',
+        '    { { "香港电台第5台AM783", "http://d1czl0fq6dkkol.cloudfront.net/radio5", "香港 · 文艺" }, STATION_REGION_HONG_KONG, STATION_CAT_CULTURE, 0 },',
+        '    { { "香港电台普通话台AM621/FM100.9", "http://d1czl0fq6dkkol.cloudfront.net/radiopth", "香港 · 普通话" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 0 },'
     ])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text("\n".join(lines) + "\n", encoding="utf-8")

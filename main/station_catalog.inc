@@ -537,9 +537,9 @@
     { { "杭州交通91.8电台", "http://lhttp.qtfm.cn/live/1133/64k.mp3", "浙江 · 交通" }, STATION_REGION_ZHEJIANG, STATION_CAT_TRAFFIC, 1 }, /* 1133 */
     { { "温州交通广播", "http://lhttp.qtfm.cn/live/1156/64k.mp3", "浙江 · 交通" }, STATION_REGION_ZHEJIANG, STATION_CAT_TRAFFIC, 0 }, /* 1156 */
     { { "衢州交通音乐广播", "http://lhttp.qtfm.cn/live/20442/64k.mp3", "浙江 · 交通" }, STATION_REGION_ZHEJIANG, STATION_CAT_TRAFFIC, 0 }, /* 20442 */
-    { { "香港电台第1台", "http://stm.rthk.hk/radio1", "香港 · 新闻" }, STATION_REGION_HONG_KONG, STATION_CAT_NEWS, 1 },
-    { { "香港电台第2台", "http://stm.rthk.hk/radio2", "香港 · 综合" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 1 },
-    { { "香港电台第3台AM567", "http://stm.rthk.hk/radio3", "香港 · 英语" }, STATION_REGION_HONG_KONG, STATION_CAT_DIALECT, 0 },
-    { { "香港电台第4台FM97.6/FM98.9", "http://stm.rthk.hk/radio4", "香港 · 音乐" }, STATION_REGION_HONG_KONG, STATION_CAT_MUSIC, 0 },
-    { { "香港电台第5台AM783", "http://stm.rthk.hk/radio5", "香港 · 文艺" }, STATION_REGION_HONG_KONG, STATION_CAT_CULTURE, 0 },
-    { { "香港电台普通话台AM621/FM100.9", "http://stm.rthk.hk/radiopth", "香港 · 普通话" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 0 },
+    { { "香港电台第1台", "http://d1czl0fq6dkkol.cloudfront.net/radio1", "香港 · 新闻" }, STATION_REGION_HONG_KONG, STATION_CAT_NEWS, 1 },
+    { { "香港电台第2台", "http://d1czl0fq6dkkol.cloudfront.net/radio2", "香港 · 综合" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 1 },
+    { { "香港电台第3台AM567", "http://d1czl0fq6dkkol.cloudfront.net/radio3", "香港 · 英语" }, STATION_REGION_HONG_KONG, STATION_CAT_DIALECT, 0 },
+    { { "香港电台第4台FM97.6/FM98.9", "http://d1czl0fq6dkkol.cloudfront.net/radio4", "香港 · 音乐" }, STATION_REGION_HONG_KONG, STATION_CAT_MUSIC, 0 },
+    { { "香港电台第5台AM783", "http://d1czl0fq6dkkol.cloudfront.net/radio5", "香港 · 文艺" }, STATION_REGION_HONG_KONG, STATION_CAT_CULTURE, 0 },
+    { { "香港电台普通话台AM621/FM100.9", "http://d1czl0fq6dkkol.cloudfront.net/radiopth", "香港 · 普通话" }, STATION_REGION_HONG_KONG, STATION_CAT_GENERAL, 0 },
