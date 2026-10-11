@@ -1,7 +1,7 @@
 {
-  "version": "1.1.8",
-  "url": "http://8.138.130.141/radio-os/radio-os-1.1.8.bin",
-  "sha256": "1b02490c94bbf82c6cd51559b22d67ae199f0bcd0e5dda5b63c7ee080e13ea93",
-  "notes": "新增状态栏随机换台，重启记住选择\n随机下一台，上一台返回历史\n优化时钟与睡眠倒计时，整理界面代码\n修复主题色与触摸测试点击响应",
-  "signature": "MEUCIQDjhtz/c1w4jDYu9slJ8TWiaeZmuhCs0ESWkZtSCPNI7wIgF57Fk/pAsybpdAZtvR9zcbcOpIzJLHDH1b9VdwetbqU="
+  "version": "1.1.9",
+  "url": "http://8.138.130.141/radio-os/radio-os-1.1.9.bin",
+  "sha256": "1eadabdf49734656b946e8a0d0baf7c2bfa106b07f3846d620e3b9737e7a6f57",
+  "notes": "新增香港电台普通话台\n香港第1–5台改为中文名并补充频率\n香港源需网络可直连，当前网络实测超时",
+  "signature": "MEMCIF/dDyz7CyYG0JI1ecYu8Tre+JzH/tAH8MDhc5DTPSX8Ah9FLKDnEqm459l9kDZXW9qmMDmGRsB24aDAUBlGkj9s"
 }
