@@ -1,7 +1,7 @@
 {
-  "version": "1.1.9",
-  "url": "http://8.138.130.141/radio-os/radio-os-1.1.9.bin",
-  "sha256": "1eadabdf49734656b946e8a0d0baf7c2bfa106b07f3846d620e3b9737e7a6f57",
-  "notes": "新增香港电台普通话台\n香港第1–5台改为中文名并补充频率\n香港源需网络可直连，当前网络实测超时",
-  "signature": "MEMCIF/dDyz7CyYG0JI1ecYu8Tre+JzH/tAH8MDhc5DTPSX8Ah9FLKDnEqm459l9kDZXW9qmMDmGRsB24aDAUBlGkj9s"
+  "version": "1.1.10",
+  "url": "http://8.138.130.141/radio-os/radio-os-1.1.10.bin",
+  "sha256": "b44134a462509a46bf6491f893708835bbb43b38c7f8aa58bb2018d3d8d42843",
+  "notes": "修复香港电台6路MP3入口的域名解析兼容问题\n保持台名、排序及其他537台不变\n重复切台偶发失败仍待排查",
+  "signature": "MEYCIQCbx4XbFJVzddyiOpikMnnQO/uE9uxOftcOBA5nchuFdAIhAJk9t+nQLktZXlKCKcmfDhNwOALhooHaYvpL2K00bJEj"
 }
