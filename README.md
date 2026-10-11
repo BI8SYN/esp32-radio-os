@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 An internet radio firmware for the LCDwiki 2.8" ESP32-S3 Display board
-(SKU: ES3C28P) — 542 pre-verified Chinese public MP3 streams browsable fully
+(SKU: ES3C28P) — 543 pre-verified Chinese public MP3 streams browsable fully
 offline, province and genre filtering, on-screen Wi-Fi setup, a real-PCM FFT
 spectrum, light/dark themes on a schedule, sleep timer, and signed OTA updates.
 Built with ESP-IDF and LVGL. Build it from source as described below — no
@@ -48,7 +48,7 @@ prebuilt image is published yet. The rest of this README is in Chinese.
 
 ## 功能
 
-- **三个本地入口**：收藏（NVS，上限 50）/ 精选（35 个）/ 台库（542 个发布前全量复检通过的公开 MP3 流）
+- **三个本地入口**：收藏（NVS，上限 50）/ 精选（35 个）/ 台库（543 个发布前全量复检通过的公开 MP3 流）
 - 台库覆盖全国级、31 个省级地区与香港；按综合、资讯、音乐、交通、财经、文艺、生活、体育、方言等内容分类
 - **地区 + 内容双重筛选**完全在本机完成；目录固化在 Flash，打开页面不再等待 Radio Browser 或任何海外目录 API
 - 每页 16 台，支持上一页/下一页；每行显示地区、类型和 MP3 码率，并可直接收藏
@@ -110,7 +110,7 @@ bootloader、分区表、OTA 数据和 app；之后由设备主动访问签名�
 | 文件 | 职责 |
 |---|---|
 | `main/board.c` | 板级：I²C 总线、ILI9341 屏、FT6336 触摸、LVGL 挂载、I2S + ES8311、背光、电池 ADC |
-| `main/stations.c` | 电台数据：542 台离线目录、精选、地区/内容筛选、收藏（NVS） |
+| `main/stations.c` | 电台数据：543 台离线目录、精选、地区/内容筛选、收藏（NVS） |
 | `main/station_catalog.inc` | 由工具生成的静态电台目录 |
 | `main/player.c` | 播放：PSRAM 环形缓冲、HTTP 拉流任务、MP3 解码任务 |
 | `main/wifi_mgr.c` | Wi-Fi：凭据存取、本机扫描连接、配网热点 + 备用网页 |
