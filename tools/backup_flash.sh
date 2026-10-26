@@ -5,6 +5,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 LABEL="${1:-$(date +%Y%m%d-%H%M%S)}"
+[[ "$LABEL" != *..* && "$LABEL" != */* ]] || { echo "Invalid backup label" >&2; exit 2; }
+umask 077
 OUT="backup/$LABEL"
 mkdir -p "$OUT"
 
@@ -14,8 +16,8 @@ tools/esp.sh flash_id | tee "$OUT/chip_info.txt"
 echo "==> 读取 MAC"
 tools/esp.sh read_mac | tee -a "$OUT/chip_info.txt"
 
-echo "==> 读取整片 16MB Flash（921600 下约 3 分钟，请勿拔线）"
-tools/esp.sh read_flash 0x0 0x1000000 "$OUT/flash_full_16MB.bin"
+echo "==> 读取整片 16MB Flash（波特率 ${ESP_BAUD:-115200}，请勿拔线）"
+tools/device-ubuntu.sh backup "$OUT/flash_full_16MB.bin" 0x1000000
 
 echo "==> 计算校验和"
 shasum -a 256 "$OUT/flash_full_16MB.bin" | tee "$OUT/SHA256SUMS"

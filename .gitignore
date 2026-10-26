@@ -27,3 +27,6 @@ compile_commands.json
 # 临时文件
 *.log
 *.tmp
+
+# Exported Ubuntu build artifacts; intermediates stay in Linux.
+/.ubuntu-build/
